@@ -1,0 +1,237 @@
+{
+  "meta": {
+    "name": "The Stolen Lands",
+    "started": "",
+    "note": "Kingmaker AP · Starfinder 2e rules · the Dayton table"
+  },
+  "hexes": {
+    "AD2": {
+      "status": "explored",
+      "name": "Crash Site",
+      "notes": "",
+      "marks": [
+        "poi"
+      ]
+    },
+    "AC2": {
+      "status": "explored",
+      "name": "",
+      "notes": "",
+      "marks": []
+    },
+    "AB2": {
+      "status": "explored",
+      "name": "Gnome Village",
+      "notes": "",
+      "marks": [
+        "poi"
+      ]
+    },
+    "AA2": {
+      "status": "explored",
+      "name": "",
+      "notes": "",
+      "marks": []
+    },
+    "Z2": {
+      "status": "explored",
+      "name": "",
+      "notes": "",
+      "marks": []
+    },
+    "Z3": {
+      "status": "explored",
+      "name": "Fort - Aliens",
+      "notes": "",
+      "marks": [
+        "poi"
+      ]
+    },
+    "Y2": {
+      "status": "explored",
+      "name": "",
+      "notes": "",
+      "marks": []
+    },
+    "Z1": {
+      "status": "explored",
+      "name": "",
+      "notes": "",
+      "marks": []
+    },
+    "Y1": {
+      "status": "explored",
+      "name": "",
+      "notes": "",
+      "marks": []
+    },
+    "X2": {
+      "status": "explored",
+      "name": "Bokken's Potions",
+      "notes": "",
+      "marks": [
+        "poi"
+      ]
+    },
+    "X1": {
+      "status": "explored",
+      "name": "",
+      "notes": "",
+      "marks": []
+    },
+    "W1": {
+      "status": "explored",
+      "name": "",
+      "notes": "",
+      "marks": []
+    },
+    "V2": {
+      "status": "explored",
+      "name": "Oleg's Outpost",
+      "notes": "",
+      "marks": [
+        "poi"
+      ]
+    },
+    "W2": {
+      "status": "explored",
+      "name": "",
+      "notes": "",
+      "marks": []
+    },
+    "V3": {
+      "status": "explored",
+      "name": "Moon Radishes",
+      "notes": "",
+      "marks": [
+        "poi"
+      ]
+    },
+    "U4": {
+      "status": "explored",
+      "name": "Bandit Camp",
+      "notes": "",
+      "marks": [
+        "poi"
+      ]
+    },
+    "T4": {
+      "status": "explored",
+      "name": "Temple of the Elk",
+      "notes": "",
+      "marks": [
+        "poi"
+      ]
+    },
+    "V4": {
+      "status": "explored",
+      "name": "Gold Vein",
+      "notes": "",
+      "marks": [
+        "poi"
+      ]
+    },
+    "W3": {
+      "status": "explored",
+      "name": "",
+      "notes": "",
+      "marks": []
+    },
+    "X3": {
+      "status": "explored",
+      "name": "",
+      "notes": "",
+      "marks": []
+    },
+    "Y3": {
+      "status": "explored",
+      "name": "",
+      "notes": "",
+      "marks": []
+    },
+    "W4": {
+      "status": "explored",
+      "name": "",
+      "notes": "",
+      "marks": []
+    },
+    "W5": {
+      "status": "explored",
+      "name": "Mitflit Sycamore",
+      "notes": "",
+      "marks": [
+        "poi"
+      ]
+    },
+    "W6": {
+      "status": "explored",
+      "name": "Sootscale Kobolds",
+      "notes": "",
+      "marks": [
+        "poi"
+      ]
+    },
+    "V6": {
+      "status": "claimed",
+      "name": "",
+      "notes": "",
+      "marks": []
+    },
+    "U6": {
+      "status": "claimed",
+      "name": "Thangberries",
+      "notes": "Woodcutter Established",
+      "marks": [
+        "poi"
+      ]
+    },
+    "V7": {
+      "status": "claimed",
+      "name": "Borklahoma",
+      "notes": "",
+      "marks": [
+        "settlement"
+      ]
+    },
+    "U8": {
+      "status": "explored",
+      "name": "Crone's Hut",
+      "notes": "Wants mushrooms",
+      "marks": [
+        "poi"
+      ]
+    },
+    "T8": {
+      "status": "explored",
+      "name": "",
+      "notes": "",
+      "marks": []
+    },
+    "U5": {
+      "status": "explored",
+      "name": "",
+      "notes": "",
+      "marks": []
+    },
+    "V5": {
+      "status": "explored",
+      "name": "",
+      "notes": "",
+      "marks": []
+    },
+    "T6": {
+      "status": "explored",
+      "name": "",
+      "notes": "",
+      "marks": []
+    },
+    "S6": {
+      "status": "explored",
+      "name": "Tatzlwyrm Den",
+      "notes": "",
+      "marks": []
+    }
+  },
+  "regions": [],
+  "sessions": []
+}
