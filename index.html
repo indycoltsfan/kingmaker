@@ -131,6 +131,41 @@ svg.showCoords .coordLbl{opacity:.55}
 .side-wallWood{border-color:#8a6a44 !important}
 #setInfra{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
 #setInfra .chip{font-size:11.5px}
+/* the court (kingdom dashboard) */
+#courtBk{position:fixed;inset:0;background:rgba(10,8,5,.85);z-index:74;display:none;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto}
+#courtBk.show{display:flex}
+#court{background:linear-gradient(180deg,#262015,#1d1811);border:1px solid var(--brass-dark);border-radius:6px;
+  max-width:880px;width:100%;padding:28px 30px;margin:auto}
+#court h2{font-family:var(--serif);font-weight:700;font-size:30px;letter-spacing:.02em}
+#court .csub{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--parch-faint);margin:4px 0 2px}
+#court .crule{height:1px;background:linear-gradient(90deg,var(--brass),transparent);margin:14px 0 18px}
+.cchips{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.cchip{padding:5px 12px;border:1px solid var(--edge);border-radius:14px;font-size:12.5px;color:var(--parch-dim);background:var(--ink2)}
+.cchip b{color:var(--brass-bright);font-weight:700}
+.cchip.warn{border-color:#6e352c;color:#c98a7f}
+.cgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:16px 0}
+.acard{background:var(--ink2);border:1px solid var(--edge);border-radius:5px;padding:12px;text-align:center}
+.acard .amod{font-family:var(--serif);font-size:30px;font-weight:700;color:var(--brass-bright)}
+.acard .aname{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--parch-faint);margin-top:2px}
+.acard .ascore{font-size:11.5px;color:var(--parch-dim)}
+.csec{margin:18px 0}
+.csec h3{font-size:11.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--parch-faint);margin-bottom:9px}
+.cbars{display:grid;grid-template-columns:1fr 1fr;gap:8px 22px}
+.cbar{display:flex;align-items:center;gap:10px;font-size:13.5px}
+.cbar .bn{width:74px;color:var(--parch-dim)}
+.cbar .bt{flex:1;height:9px;background:#171310;border-radius:5px;overflow:hidden;border:1px solid var(--edge)}
+.cbar .bf{height:100%;background:var(--brass);border-radius:5px}
+.cbar .bv{font-family:var(--mono);font-size:12px;color:var(--parch-dim);width:44px;text-align:right}
+.ctable{width:100%;border-collapse:collapse;font-size:13.5px}
+.ctable td,.ctable th{padding:6px 8px;border-top:1px solid var(--edge);text-align:left}
+.ctable th{font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--parch-faint);border-top:none}
+.ctable .mono{font-family:var(--mono)}
+.pcbadge{font-size:10px;letter-spacing:.1em;padding:2px 7px;border-radius:9px;background:var(--brass-dark);color:var(--parch)}
+.skgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:2px 26px}
+.skrow{display:flex;justify-content:space-between;padding:5px 4px;border-bottom:1px solid var(--edge);font-size:13.5px}
+.skrow .skt{font-family:var(--mono);color:var(--brass-bright)}
+.skrow .skp{font-size:10.5px;color:var(--parch-faint);margin-left:6px}
+@media (max-width:720px){ .cgrid{grid-template-columns:repeat(2,1fr)} .cbars{grid-template-columns:1fr} .skgrid{grid-template-columns:1fr} #court{padding:20px 16px} }
 /* district overlay */
 #districtBk{position:fixed;inset:0;background:rgba(10,8,5,.82);z-index:75;display:none;align-items:center;justify-content:center;padding:18px}
 #districtBk.show{display:flex}
@@ -238,9 +273,10 @@ svg.showCoords .coordLbl{opacity:.55}
     <div class="title">The Stolen Lands<span class="tail"> <span class="amp">&</span> the Kingdom Thereof</span></div>
   </div>
   <div class="sub">A Chronicle of Exploration &amp; Rule</div>
-  <div id="draftTag">v0.10.1 · cal v5</div>
+  <div id="draftTag">v0.11 · cal v5</div>
   <div class="spacer"></div>
   <button class="hbtn" id="authBtn">Sign in</button>
+  <button class="hbtn" id="courtBtn">Kingdom</button>
   <button class="hbtn" id="chronBtn">Chronicle</button>
   <button class="hbtn" id="provBtn">Provinces</button>
   <button class="hbtn" id="editBtn">Edit mode</button>
@@ -358,6 +394,21 @@ svg.showCoords .coordLbl{opacity:.55}
   </div>
 </aside>
 
+<div id="courtBk"><div id="court">
+  <div class="csub" id="courtSrc"></div>
+  <h2 id="courtName">The Kingdom</h2>
+  <div class="csub" id="courtLine"></div>
+  <div class="cchips" id="courtChips"></div>
+  <div class="crule"></div>
+  <div class="cgrid" id="courtAbil"></div>
+  <div class="csec"><h3>Unrest &amp; Ruin</h3><div class="cbars" id="courtRuin"></div></div>
+  <div class="csec"><h3>Commodities</h3><div class="cbars" id="courtComm"></div></div>
+  <div class="csec"><h3>Work Sites &amp; Upkeep</h3><div class="cchips" id="courtWork"></div></div>
+  <div class="csec"><h3>Leadership</h3><table class="ctable" id="courtLead"></table></div>
+  <div class="csec"><h3>Kingdom Skills</h3><div class="skgrid" id="courtSkills"></div></div>
+  <div class="csec" id="courtFeatsSec"><h3>Kingdom Feats</h3><div id="courtFeats"></div></div>
+  <button class="btn" id="courtClose" style="margin-top:8px">Close</button>
+</div></div>
 <div id="districtBk"><div id="district">
   <h2 id="dName"></h2>
   <div class="dsub" id="dSub"></div>
@@ -630,7 +681,7 @@ async function cloudBoot(){
    SHEET boots from an embedded snapshot, then lazily upgrades to a live pull of
    the group's shared Google Sheet (whole-workbook xlsx export, parsed with
    SheetJS). Cached in localStorage; refreshed when older than TTL. */
-let SHEET = {"kingdom": "New Bork City", "settlements": {"Borklahoma": {"stats": {"type": "Village", "population": 440, "level": 1, "blocks": 1, "lots": 4, "residential": 4, "overcrowded": false, "consumption": 1, "maxItemBonus": 1, "influence": 1}, "structures": [{"name": "Tenement", "block": "A", "pos": "A1", "seq": 1, "size": 1, "residential": 1, "edifice": false, "bonus": null, "effects": "The first time you build tenements each Kingdom turn, reduce Unrest by 1.", "img": "http://kingmaker-sheet.s3.amazonaws.com/structures/tenement.jpg"}, {"name": "Tenement", "block": "A", "pos": "A2", "seq": 2, "size": 1, "residential": 1, "edifice": false, "bonus": null, "effects": "The first time you build tenements each Kingdom turn, reduce Unrest by 1.", "img": "http://kingmaker-sheet.s3.amazonaws.com/structures/tenement.jpg"}, {"name": "Tenement", "block": "A", "pos": "A3", "seq": 3, "size": 1, "residential": 1, "edifice": false, "bonus": null, "effects": "The first time you build tenements each Kingdom turn, reduce Unrest by 1.", "img": "http://kingmaker-sheet.s3.amazonaws.com/structures/tenement.jpg"}, {"name": "Tenement", "block": "A", "pos": "A4", "seq": 4, "size": 1, "residential": 1, "edifice": false, "bonus": null, "effects": "The first time you build tenements each Kingdom turn, reduce Unrest by 1.", "img": "http://kingmaker-sheet.s3.amazonaws.com/structures/tenement.jpg"}], "sides": {"N": {"water": false, "bridge": false, "wallWood": false, "wallStone": false}, "E": {"water": false, "bridge": false, "wallWood": false, "wallStone": false}, "S": {"water": true, "bridge": false, "wallWood": false, "wallStone": false}, "W": {"water": false, "bridge": false, "wallWood": false, "wallStone": false}}, "infra": {"streetlamps": false, "paved": false, "sewer": false}, "civicLevel": 0}}};
+let SHEET = {"kingdom": "New Bork City", "settlements": {"Borklahoma": {"stats": {"type": "Village", "population": 424, "level": 1, "blocks": 1, "lots": 4, "residential": 4, "overcrowded": false, "consumption": 1, "maxItemBonus": 1, "influence": 1}, "structures": [{"name": "Tenement", "block": "A", "pos": "A1", "seq": 1, "size": 1.0, "residential": 1.0, "edifice": false, "bonus": null, "effects": "The first time you build tenements each Kingdom turn, reduce Unrest by 1.", "img": "http://kingmaker-sheet.s3.amazonaws.com/structures/tenement.jpg"}, {"name": "Tenement", "block": "A", "pos": "A2", "seq": 2, "size": 1.0, "residential": 1.0, "edifice": false, "bonus": null, "effects": "The first time you build tenements each Kingdom turn, reduce Unrest by 1.", "img": "http://kingmaker-sheet.s3.amazonaws.com/structures/tenement.jpg"}, {"name": "Tenement", "block": "A", "pos": "A3", "seq": 3, "size": 1.0, "residential": 1.0, "edifice": false, "bonus": null, "effects": "The first time you build tenements each Kingdom turn, reduce Unrest by 1.", "img": "http://kingmaker-sheet.s3.amazonaws.com/structures/tenement.jpg"}, {"name": "Tenement", "block": "A", "pos": "A4", "seq": 4, "size": 1.0, "residential": 1.0, "edifice": false, "bonus": null, "effects": "The first time you build tenements each Kingdom turn, reduce Unrest by 1.", "img": "http://kingmaker-sheet.s3.amazonaws.com/structures/tenement.jpg"}], "sides": {"N": {"water": false, "bridge": false, "wallWood": false, "wallStone": false}, "E": {"water": false, "bridge": false, "wallWood": false, "wallStone": false}, "S": {"water": true, "bridge": false, "wallWood": false, "wallStone": false}, "W": {"water": false, "bridge": false, "wallWood": false, "wallStone": false}}, "infra": {"streetlamps": false, "paved": false, "sewer": false}, "civicLevel": 0}}, "court": {"name": "New Bork City", "capital": "Borklahoma", "level": 1.0, "xp": 220.0, "fame": 1.0, "partyLevel": null, "charter": "Exploration", "heartland": "Hill or Plain", "government": "Oligarchy", "size": 2.0, "resourceDice": 6.0, "resourceDie": "d4", "controlDC": 14.0, "unrest": 0.0, "unrestPenalty": 0.0, "atWar": false, "tappedTreasury": false, "consumption": {"settlement": 1.0, "army": 0.0, "tradeAgreements": 0.0}, "renown": null, "abilities": [{"name": "Culture", "mod": 2.0, "score": 14.0}, {"name": "Economy", "mod": 2.0, "score": 14.0}, {"name": "Loyalty", "mod": 2.0, "score": 14.0}, {"name": "Stability", "mod": 2.0, "score": 14.0}], "ruin": [{"name": "Corruption", "score": 0, "penalty": 0, "threshold": 5.0}, {"name": "Crime", "score": 0, "penalty": 0, "threshold": 5.0}, {"name": "Decay", "score": 0, "penalty": 0, "threshold": 5.0}, {"name": "Strife", "score": 0, "penalty": 0, "threshold": 5.0}], "commodities": [{"name": "Food", "cur": 0, "max": 4.0}, {"name": "Lumber", "cur": 0, "max": 4.0}, {"name": "Luxuries", "cur": 0, "max": 4.0}, {"name": "Ore", "cur": 0, "max": 4.0}, {"name": "Stone", "cur": 2.0, "max": 4.0}], "workSites": [{"name": "Farmlands", "count": 0}, {"name": "Lumber Camps", "count": 1.0}, {"name": "Mines", "count": 0}, {"name": "Quarries", "count": 0}], "leaders": [{"name": "Torvir", "role": "Ruler", "bonus": 2.0, "pc": true, "vacant": false}, {"name": "Linzi", "role": "Counselor", "bonus": 1.0, "pc": false, "vacant": false}, {"name": "Jurgen/Vaenist", "role": "General", "bonus": 2.0, "pc": true, "vacant": false}, {"name": "Bork Bork", "role": "Emissary", "bonus": 1.0, "pc": true, "vacant": false}, {"name": "Demiti-70", "role": "Magister", "bonus": 2.0, "pc": true, "vacant": false}, {"name": "Tufor", "role": "Treasurer", "bonus": 1.0, "pc": true, "vacant": false}, {"name": "Zarkryth", "role": "Viceroy", "bonus": 2.0, "pc": true, "vacant": false}, {"name": "Pan-Chot", "role": "Warden", "bonus": 2.0, "pc": true, "vacant": false}], "skills": [{"name": "Agriculture", "total": 5.0, "ability": "Stability", "prof": "T"}, {"name": "Arts", "total": 5.0, "ability": "Culture", "prof": "T"}, {"name": "Boating", "total": 3.0, "ability": "Economy", "prof": null}, {"name": "Defense", "total": 5.0, "ability": "Stability", "prof": "T"}, {"name": "Engineering", "total": 5.0, "ability": "Stability", "prof": "T"}, {"name": "Exploration", "total": 5.0, "ability": "Economy", "prof": "T"}, {"name": "Folklore", "total": 2.0, "ability": "Culture", "prof": null}, {"name": "Industry", "total": 5.0, "ability": "Economy", "prof": "T"}, {"name": "Intrigue", "total": 3.0, "ability": "Loyalty", "prof": null}, {"name": "Magic", "total": 6.0, "ability": "Culture", "prof": "T"}, {"name": "Politics", "total": 3.0, "ability": "Loyalty", "prof": null}, {"name": "Scholarship", "total": 2.0, "ability": "Culture", "prof": null}, {"name": "Statecraft", "total": 3.0, "ability": "Loyalty", "prof": null}, {"name": "Trade", "total": 6.0, "ability": "Economy", "prof": "T"}, {"name": "Warfare", "total": 5.0, "ability": "Loyalty", "prof": "T"}, {"name": "Wilderness", "total": 5.0, "ability": "Stability", "prof": "T"}], "feats": [{"level": 1.0, "name": "Insider Trading", "desc": "Your leading citizens share valuable business information with one another and with associates in other lands, and they hire one another\u2019s workers to supply the labor they need to fuel their production. You gain a +1 status bonus to Establish Work Site, Establish Trade Agreement, and Trade Commodities activities. In addition, gain 1 bonus Resource Die at the start of each Kingdom turn."}]}};
 let SHEET_SOURCE = "snapshot";      // snapshot | live
 let SHEET_AT = null;                // Date of live data
 const SHEET_ID = "1LkyRyaYfpaU6LIWFlSRjf1UHXxWWMtlOQisvmonfGTM";
@@ -675,6 +726,35 @@ function parseWorkbook(wb){
         tgt.stats[k] = k==="overcrowded" ? truthy(v) : (v==="" ? null : v);
       }
     }
+  }
+  const ks = wb.Sheets['Kingdom Sheet'];
+  if(ks && String(XC(ks,'B2')).trim()==='Kingdom'){
+    const N = a => { const v = XC(ks,a); const n = parseFloat(v); return v===""||isNaN(n) ? null : n; };
+    const S = a => { const v = XC(ks,a); return v==="" ? null : String(v); };
+    const court = {
+      name:S('C2'), capital:S('C3'), level:N('H3'), xp:N('I3'), fame:N('J3'),
+      partyLevel: N('L1') ?? N('K2'),
+      charter:S('I5'), heartland:S('I6'), government:S('I7'), size:N('I8'),
+      resourceDice:N('I11'), resourceDie:S('I12'),
+      controlDC:N('B14'), unrest:N('B17'), unrestPenalty:N('E17'),
+      atWar:truthy(XC(ks,'J32')), tappedTreasury:truthy(XC(ks,'J33')),
+      consumption:{settlement:N('J28'), army:N('J29'), tradeAgreements:N('J30')},
+      renown: N('I35') ?? N('J35'),
+      abilities:[], ruin:[], commodities:[], workSites:[], leaders:[], skills:[], feats:[]
+    };
+    for(let r=7;r<=10;r++) court.abilities.push({name:S('C'+r), mod:N('B'+r), score:N('D'+r)});
+    for(let r=21;r<=24;r++) court.ruin.push({name:S('B'+r), score:N('C'+r)||0, penalty:N('D'+r)||0, threshold:N('F'+r)||0});
+    for(let r=16;r<=20;r++) court.commodities.push({name:S('H'+r), cur:N('I'+r)||0, max:N('J'+r)||0});
+    [[23,'Farmlands'],[24,'Lumber Camps'],[25,'Mines'],[26,'Quarries']].forEach(([r,lbl])=>
+      court.workSites.push({name:S('H'+r)||lbl, count:N('J'+r)||0}));
+    for(let r=28;r<=35;r++){ const nm=S('B'+r); if(!nm) continue;
+      court.leaders.push({name:nm, role:S('C'+r), bonus:N('D'+r), pc:truthy(XC(ks,'E'+r)), vacant:truthy(XC(ks,'F'+r))}); }
+    for(let r=5;r<=20;r++){ const nm=S('M'+r); if(!nm) continue;
+      let prof=null; [['T','T'],['U','E'],['V','M'],['W','L']].forEach(([c,l])=>{ if(N(c+r)) prof=l; });
+      court.skills.push({name:nm, total:N('N'+r)||0, ability:S('Q'+r), prof}); }
+    for(let r=45;r<=55;r++){ const f=S('C'+r); if(!f) continue;
+      court.feats.push({level:N('B'+r), name:f, desc:S('G'+r)||''}); }
+    out.court = court;
   }
   for(const name of wb.SheetNames){
     const ws = wb.Sheets[name];
@@ -1225,6 +1305,74 @@ function openDistrict(name){
 $('setExpand').onclick = ()=>{ if(districtOf) openDistrict(districtOf); };
 $('dClose').onclick = ()=>$('districtBk').classList.remove('show');
 $('districtBk').addEventListener('click', e=>{ if(e.target.id==='districtBk') $('districtBk').classList.remove('show'); });
+
+/* ============ the court ============ */
+function openCourt(){
+  const K = SHEET.court;
+  if(!K){ toast("The kingdom ledger hasn't been read yet — try again in a moment."); refreshSheetLive(true); return; }
+  const mins = SHEET_AT ? Math.round((Date.now()-SHEET_AT.getTime())/60000) : null;
+  $('courtSrc').textContent = SHEET_SOURCE==="live" ? (mins<1 ? "LIVE LEDGER" : `LEDGER · ${mins}m OLD`) : "LEDGER SNAPSHOT";
+  $('courtSrc').style.color = SHEET_SOURCE==="live" ? "#9fc79b" : "var(--parch-faint)";
+  $('courtName').textContent = K.name || "The Kingdom";
+  $('courtLine').textContent = [
+    K.capital ? `Capital: ${K.capital}` : null,
+    K.charter ? `${K.charter} Charter` : null, K.heartland, K.government,
+    K.size!=null ? `Size ${K.size}` : null
+  ].filter(Boolean).join("  ·  ");
+  const chips = $('courtChips'); chips.innerHTML="";
+  const chip = (html, warn)=>{ const c=document.createElement('span'); c.className="cchip"+(warn?" warn":""); c.innerHTML=html; chips.appendChild(c); };
+  if(K.level!=null) chip(`Level <b>${K.level}</b>`);
+  if(K.xp!=null) chip(`XP <b>${K.xp}</b>${K.level!=null?" / 1000":""}`);
+  if(K.fame!=null) chip(`Fame <b>${K.fame}</b>`);
+  if(K.controlDC!=null) chip(`Control DC <b>${K.controlDC}</b>`);
+  if(K.resourceDice!=null) chip(`Resource Dice <b>${K.resourceDice}${K.resourceDie||""}</b>`);
+  if(K.renown!=null) chip(`Renown <b>${K.renown}</b>`);
+  if(K.partyLevel!=null) chip(`Party Level <b>${K.partyLevel}</b>`);
+  if(K.atWar) chip("⚔ At war", true);
+  if(K.tappedTreasury) chip("Treasury tapped", true);
+  const ab = $('courtAbil'); ab.innerHTML="";
+  for(const a of (K.abilities||[])){
+    const d=document.createElement('div'); d.className="acard";
+    d.innerHTML=`<div class="amod">${a.mod>=0?"+":""}${a.mod??"—"}</div><div class="aname">${a.name||""}</div><div class="ascore">score ${a.score??"—"}</div>`;
+    ab.appendChild(d);
+  }
+  const ru = $('courtRuin'); ru.innerHTML="";
+  const bar = (parent, name, cur, max, extra)=>{
+    const d=document.createElement('div'); d.className="cbar";
+    const pct = max>0 ? Math.min(100, 100*cur/max) : 0;
+    d.innerHTML=`<span class="bn">${name}</span><span class="bt"><span class="bf" style="width:${pct}%"></span></span><span class="bv">${cur}${max?` / ${max}`:""}</span>${extra||""}`;
+    parent.appendChild(d);
+  };
+  bar(ru, "Unrest", K.unrest??0, 10);
+  for(const r of (K.ruin||[])) bar(ru, r.name, r.score, r.threshold);
+  const co = $('courtComm'); co.innerHTML="";
+  for(const c of (K.commodities||[])) bar(co, c.name, c.cur, c.max);
+  const wk = $('courtWork'); wk.innerHTML="";
+  for(const w of (K.workSites||[])){ const c=document.createElement('span'); c.className="cchip"; c.innerHTML=`${w.name} <b>${w.count}</b>`; wk.appendChild(c); }
+  if(K.consumption){ const c=document.createElement('span'); c.className="cchip";
+    c.innerHTML=`Consumption <b>${(K.consumption.settlement||0)+(K.consumption.army||0)}</b> (settlements ${K.consumption.settlement||0} · armies ${K.consumption.army||0})`; wk.appendChild(c); }
+  const ld = $('courtLead');
+  ld.innerHTML = "<tr><th>Name</th><th>Role</th><th>Invested</th><th></th></tr>" +
+    (K.leaders||[]).map(l=>`<tr><td>${l.name||""}</td><td>${l.role||""}</td><td class="mono">${l.bonus!=null?"+"+l.bonus:"—"}</td><td>${l.pc?'<span class="pcbadge">PC</span>':""}${l.vacant?'<span class="pcbadge" style="background:#6e352c">VACANT</span>':""}</td></tr>`).join("");
+  const sk = $('courtSkills'); sk.innerHTML="";
+  for(const x of (K.skills||[])){
+    const d=document.createElement('div'); d.className="skrow";
+    d.innerHTML=`<span>${x.name}<span class="skp">${x.ability||""}${x.prof?` · ${x.prof}`:""}</span></span><span class="skt">+${x.total}</span>`;
+    sk.appendChild(d);
+  }
+  const fe = $('courtFeats'); fe.innerHTML="";
+  $('courtFeatsSec').style.display = (K.feats&&K.feats.length) ? "" : "none";
+  for(const f of (K.feats||[])){
+    const d=document.createElement('div'); d.style.cssText="padding:7px 4px;border-top:1px solid var(--edge);font-size:13.5px";
+    d.innerHTML=`<b style="font-family:var(--serif)">${f.name}</b> <span class="skp">(level ${f.level??"—"})</span>${f.desc?`<div style="color:var(--parch-dim);margin-top:3px;line-height:1.45">${f.desc}</div>`:""}`;
+    fe.appendChild(d);
+  }
+  $('courtBk').classList.add('show');
+  refreshSheetLive(false);
+}
+$('courtBtn').onclick = openCourt;
+$('courtClose').onclick = ()=>$('courtBk').classList.remove('show');
+$('courtBk').addEventListener('click', e=>{ if(e.target.id==='courtBk') $('courtBk').classList.remove('show'); });
 
 /* edit toggle */
 $('editBtn').onclick=()=>{
