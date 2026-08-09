@@ -285,7 +285,7 @@ svg.showCoords .coordLbl{opacity:.55}
     <div class="title">The Stolen Lands<span class="tail"> <span class="amp">&</span> the Kingdom Thereof</span></div>
   </div>
   <div class="sub">A Chronicle of Exploration &amp; Rule</div>
-  <div id="draftTag">v0.13 · cal v5</div>
+  <div id="draftTag">v0.14 · cal v5</div>
   <div class="spacer"></div>
   <button class="hbtn" id="authBtn">Sign in</button>
   <button class="hbtn" id="courtBtn">Kingdom</button>
@@ -336,6 +336,7 @@ svg.showCoords .coordLbl{opacity:.55}
   </div>
   <div class="rgroup" id="editTools" style="display:none">
     <button class="rbtn" id="paintBtn" data-tip="Survey brush" style="font-size:14px">✎</button>
+    <button class="rbtn" id="quillBtn" data-tip="Test the quill (Sheets write)" style="font-size:14px">✒</button>
     <button class="rbtn" id="calBtn" data-tip="Grid calibration" style="font-size:13px">⌖</button>
   </div>
   <div class="rgroup">
@@ -547,20 +548,57 @@ function applyRole(){
   $('fogBtn').style.display = ROLE==="gm" ? "" : "none";
   if(ROLE!=="gm"){ $('fogWrap').classList.remove('show'); if(fogA!==0.93){ fogA=0.93; refreshAll(); } }
   $('paintBtn').style.display = ROLE==="gm" ? "" : "none";
+  $('quillBtn').style.display = ROLE==="gm" ? "" : "none";
   if(ROLE!=="gm" && paintMode) $('paintBtn').click();
   $('loadBtn').style.display = ROLE==="gm" ? "" : "none";
   if(selected && !typingInto(selected.id)) openPanel(selected);
   listProvinces(); listChronicle();
 }
+let GTOKEN = null;   // Google access token (Sheets scope), captured per session
 $('authBtn').onclick = async ()=>{
   if(!CLOUD || !sbc) return;
   if(SESSION){
     if(confirm("Sign out of the kingdom?")) await sbc.auth.signOut();
   } else {
     await sbc.auth.signInWithOAuth({provider:'google',
-      options:{redirectTo: location.origin + location.pathname}});
+      options:{redirectTo: location.origin + location.pathname,
+               scopes: 'https://www.googleapis.com/auth/spreadsheets'}});
   }
 };
+
+/* ---- the GM's quill: Google Sheets API via the GM's own token ---- */
+async function sheetsApi(path, method, body){
+  if(!GTOKEN) throw new Error("no-token");
+  const r = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}${path}`, {
+    method: method||'GET',
+    headers: {Authorization: 'Bearer '+GTOKEN, ...(body?{'Content-Type':'application/json'}:{})},
+    body: body ? JSON.stringify(body) : undefined
+  });
+  if(r.status===401 || r.status===403) throw new Error("auth-"+r.status);
+  if(!r.ok) throw new Error("http-"+r.status);
+  return r.json();
+}
+async function quillTest(){
+  if(ROLE!=="gm"){ toast("The quill answers only to the GM."); return; }
+  if(!GTOKEN){
+    toast("No Google Sheets token in this session — sign out and back in to grant the quill.");
+    return;
+  }
+  try{
+    toast("Testing the quill…");
+    const meta = await sheetsApi('?fields=properties.title');
+    const cur = await sheetsApi(`/values/${encodeURIComponent("'Turn Tracker'!E44")}`);
+    const val = (cur.values && cur.values[0] && cur.values[0][0]) ?? "0";
+    await sheetsApi(`/values/${encodeURIComponent("'Turn Tracker'!E44")}?valueInputOption=USER_ENTERED`,
+      'PUT', {range:"'Turn Tracker'!E44", values:[[val]]});
+    toast(`The quill writes! "${meta.properties.title}" accepted a no-op write (E44 = ${val}).`);
+  }catch(e){
+    if(String(e.message).startsWith("auth-403")) toast("Google refused: the Sheets scope may be missing, or your account lacks edit rights on the sheet.");
+    else if(String(e.message).startsWith("auth-401")) toast("Google token expired — sign out and back in to renew the quill.");
+    else if(e.message==="no-token") toast("No Sheets token — re-sign-in needed.");
+    else toast("Quill test failed: " + e.message);
+  }
+}
 
 async function cloudLoad(){
   if(!sbc) return false;
@@ -686,8 +724,11 @@ async function cloudBoot(){
   if(ok){
     subscribeRealtime();
     if(sbc){
-      sbc.auth.onAuthStateChange(async (_e, sess)=>{ SESSION = sess; await refreshRole(); maybeMigrate(); });
+      sbc.auth.onAuthStateChange(async (_e, sess)=>{ SESSION = sess;
+        if(sess && sess.provider_token) GTOKEN = sess.provider_token;
+        await refreshRole(); maybeMigrate(); });
       const {data} = await sbc.auth.getSession(); SESSION = data.session;
+      if(SESSION && SESSION.provider_token) GTOKEN = SESSION.provider_token;
     }
   } else {
     toast("Kingdom database unreachable — offline draft mode.");
@@ -1664,6 +1705,7 @@ function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('sho
 
 /* ============ calibration mode ============ */
 let calOn=false;
+$('quillBtn').onclick=quillTest;
 $('calBtn').onclick=()=>{ calOn=!calOn; $('calBtn').classList.toggle('on',calOn); $('calPanel').classList.toggle('show',calOn); layers.calGrid.style.display=calOn?"":"none"; if(calOn) drawCal(); };
 function calOff(){ calOn=false; $('calBtn').classList.remove('on'); $('calPanel').classList.remove('show'); layers.calGrid.style.display="none"; }
 function drawCal(){
