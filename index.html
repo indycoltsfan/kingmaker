@@ -10,10 +10,10 @@
   GRID CALIBRATION (native 8000x2826 px space):
     frame: l=46 t=53 r=7919 b=2782
     hex radius R = 157.623 (pointy-top) | column pitch P = 273.010 | row pitch = 236.434
-    row 1 = truncated top rim row (Oleg's row), center y = 171.93
-    odd rows col-A x = 319.62 ; even rows col-A x = 183.11 ; 12 rows x 28 = 336 hexes
-    rows 1 and 12 are drawn truncated by the frame but fully playable
-    (cal v4 2026-08-09; left/right cut columns pending table ruling — possible 29x12)
+    29 cols x 12 rows; letters A..AE skipping I and O; playable = >=50% visible
+    odd rows col-A x = 46.61 ; even rows col-A x = 183.11 ; row 1 y = 171.93
+    corners A1 and AE12 are under 50% visible -> unassigned; 346 playable hexes
+    (cal v5 2026-08-09, per table rulings)
 -->
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,420;0,9..144,600;0,9..144,700;1,9..144,420&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&display=swap');
@@ -238,7 +238,7 @@ svg.showCoords .coordLbl{opacity:.55}
     <div class="title">The Stolen Lands<span class="tail"> <span class="amp">&</span> the Kingdom Thereof</span></div>
   </div>
   <div class="sub">A Chronicle of Exploration &amp; Rule</div>
-  <div id="draftTag">Draft 0.8 · cal v4</div>
+  <div id="draftTag">Draft 0.9 · cal v5</div>
   <div class="spacer"></div>
   <button class="hbtn" id="chronBtn">Chronicle</button>
   <button class="hbtn" id="provBtn">Provinces</button>
@@ -560,12 +560,12 @@ async function refreshSheetLive(force){
   finally{ sheetFetching = false; }
 }
 /* ============ calibration (native px, 8000x2826) ============ */
-const CAL_DEFAULT = {v:4, P:273.010, y0:171.93, xA:319.62, xB:183.11, RP:236.434,
-  rows:12, frame:{l:46,t:53,r:7919,b:2782}, W:8000, H:2826};
-/* v4: y0 = center of display row 1 = the truncated top rim row (Oleg's row).
-   Odd display rows use xA=319.62 (28 cols), even use xB=183.11 (28 cols).
-   Bottom rim row 12 is likewise truncated-but-playable. 12x28 = 336 hexes.
-   Left/right cut columns pending a table ruling (possible 29x12 scheme). */
+const CAL_DEFAULT = {v:5, P:273.010, y0:171.93, xA:46.61, xB:183.11, RP:236.434,
+  rows:12, cols:29, frame:{l:46,t:53,r:7919,b:2782}, W:8000, H:2826};
+/* v5: full 29x12 scheme per the >=50%-visible playability ruling.
+   Odd display rows: col-A center x=46.61; even rows: x=183.11; 29 letter
+   columns A..AE skipping I and O. Row 1 = Oleg's rim row (y=171.93).
+   Corners A1 and AE12 fall under 50% visible and get no cell: 346 hexes. */
 let CAL = (()=>{ try{
   const c = JSON.parse(localStorage.getItem('sl-cal'));
   if(c && c.v === CAL_DEFAULT.v) return c;
@@ -591,25 +591,49 @@ function hexGet(id){ return DATA.hexes[id] || {status:"unexplored", name:"", not
 const NS = "http://www.w3.org/2000/svg";
 let HEX = [];            // [{id,label,cx,cy,row,col,full}]
 let byId = {};
-function colLetter(i){ return i < 26 ? String.fromCharCode(65+i) : "A"+String.fromCharCode(65+i-26); }
+const COL_ALPHA = "ABCDEFGHJKLMNPQRSTUVWXYZ";   // I and O skipped (wargame convention)
+function colLetter(i){ return i < 24 ? COL_ALPHA[i] : COL_ALPHA[Math.floor((i-24)/24)] + COL_ALPHA[(i-24)%24]; }
 function R(){ return CAL.P/Math.sqrt(3); }
 function verts(cx,cy,r){ const v=[]; for(let i=0;i<6;i++){const a=Math.PI/180*(60*i+30); v.push([cx+r*Math.cos(a), cy+r*Math.sin(a)]);} return v; }
 function ptsStr(v){ return v.map(p=>p[0].toFixed(1)+","+p[1].toFixed(1)).join(" "); }
 
+function visibleFraction(cx, cy, r, F){
+  let pts = verts(cx, cy, r).map(p=>({x:p[0], y:p[1]}));
+  const clip = (poly, keep, cut)=>{
+    const out=[];
+    for(let i=0;i<poly.length;i++){
+      const a=poly[(i+poly.length-1)%poly.length], b=poly[i];
+      const ka=keep(a), kb=keep(b);
+      if(kb){ if(!ka) out.push(cut(a,b)); out.push(b); }
+      else if(ka) out.push(cut(a,b));
+    }
+    return out;
+  };
+  const ix=(a,b,v)=>({x:v, y:a.y+(b.y-a.y)*(v-a.x)/(b.x-a.x)});
+  const iy=(a,b,v)=>({x:a.x+(b.x-a.x)*(v-a.y)/(b.y-a.y), y:v});
+  pts = clip(pts, p=>p.x>=F.l, (a,b)=>ix(a,b,F.l)); if(!pts.length) return 0;
+  pts = clip(pts, p=>p.x<=F.r, (a,b)=>ix(a,b,F.r)); if(!pts.length) return 0;
+  pts = clip(pts, p=>p.y>=F.t, (a,b)=>iy(a,b,F.t)); if(!pts.length) return 0;
+  pts = clip(pts, p=>p.y<=F.b, (a,b)=>iy(a,b,F.b)); if(!pts.length) return 0;
+  let A=0;
+  for(let i=0;i<pts.length;i++){
+    const a=pts[(i+pts.length-1)%pts.length], b=pts[i];
+    A += a.x*b.y - b.x*a.y;
+  }
+  return Math.abs(A)/2 / (3*Math.sqrt(3)/2*r*r);
+}
 function buildGrid(){
   HEX = []; byId = {};
-  const F = CAL.frame, half = CAL.P/2, r = R();
-  const NROWS = CAL.rows || 12;
+  const F = CAL.frame, r = R();
+  const NROWS = CAL.rows || 12, NCOLS = CAL.cols || 29;
   for(let row=-1; row<=NROWS+1; row++){
     const cy = CAL.y0 + CAL.RP*(row-1);          // row is display-indexed from 1
     const x0 = (((row%2)+2)%2)===1 ? CAL.xA : CAL.xB;
-    for(let c=-2; c<=29; c++){
+    for(let c=-2; c<=NCOLS+1; c++){
       const cx = x0 + CAL.P*c;
-      const inRow = row>=1 && row<=NROWS;
-      const inCol = (cx-half >= F.l-1.5) && (cx+half <= F.r+1.5);
-      const playable = inRow && inCol;
-      const touches = (cx-half < F.r) && (cx+half > F.l) && (cy-r < F.b) && (cy+r > F.t);
-      if(!touches) continue;
+      const frac = visibleFraction(cx, cy, r, F);
+      if(frac <= 0.001) continue;
+      const playable = row>=1 && row<=NROWS && c>=0 && c<NCOLS && frac >= 0.499;
       const h = {row, col:c, cx, cy, full: playable, id: playable ? (colLetter(c)+row) : null};
       HEX.push(h);
       if(h.id) byId[h.id] = h;
@@ -654,15 +678,16 @@ function renderStatic(){
   const r = R();
   for(const h of HEX){
     if(!h.full){
-      el('polygon',{points:ptsStr(verts(h.cx,h.cy,r*1.02)), fill:"#0d0b08", "fill-opacity":.97, stroke:"#0d0b08","stroke-width":4}, layers.permFog);
+      el('polygon',{points:ptsStr(verts(h.cx,h.cy,r)), fill:"#0d0b08", "fill-opacity":.97, stroke:"#0d0b08","stroke-width":1.5,"stroke-opacity":.97}, layers.permFog);
       continue;
     }
     h.fillEl = el('polygon',{points:ptsStr(verts(h.cx,h.cy,r)), class:"hexFill"}, layers.fills);
     const F2 = CAL.frame;
-    h.coordEl = el('text',{x:h.cx, y:Math.max(h.cy-r*0.58, F2.t+36), "text-anchor":"middle","font-size":30, class:"coordLbl"}, layers.coords);
+    const lx = Math.min(Math.max(h.cx, F2.l+42), F2.r-42);
+    h.coordEl = el('text',{x:lx, y:Math.max(h.cy-r*0.58, F2.t+36), "text-anchor":"middle","font-size":30, class:"coordLbl"}, layers.coords);
     h.coordEl.textContent = h.id;
-    h.nameEl = el('text',{x:h.cx, y:Math.min(Math.max(h.cy+12, F2.t+74), F2.b-40), "text-anchor":"middle","font-size":32, class:"nameLbl"}, layers.names);
-    h.markEl = el('text',{x:h.cx, y:Math.min(h.cy+r*0.62, F2.b-14), "text-anchor":"middle","font-size":44, class:"marker", fill:"#d8b366"}, layers.marks);
+    h.nameEl = el('text',{x:lx, y:Math.min(Math.max(h.cy+12, F2.t+74), F2.b-40), "text-anchor":"middle","font-size":32, class:"nameLbl"}, layers.names);
+    h.markEl = el('text',{x:lx, y:Math.min(h.cy+r*0.62, F2.b-14), "text-anchor":"middle","font-size":44, class:"marker", fill:"#d8b366"}, layers.marks);
     const hit = el('polygon',{points:ptsStr(verts(h.cx,h.cy,r)), class:"hexHit"}, layers.hits);
     hit.addEventListener('pointerenter', ev=>showTip(h,ev));
     hit.addEventListener('pointermove', ev=>moveTip(ev));
