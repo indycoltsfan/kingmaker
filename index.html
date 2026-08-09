@@ -238,7 +238,7 @@ svg.showCoords .coordLbl{opacity:.55}
     <div class="title">The Stolen Lands<span class="tail"> <span class="amp">&</span> the Kingdom Thereof</span></div>
   </div>
   <div class="sub">A Chronicle of Exploration &amp; Rule</div>
-  <div id="draftTag">Draft 0.9 · cal v5</div>
+  <div id="draftTag">Draft 0.9.1 · cal v5</div>
   <div class="spacer"></div>
   <button class="hbtn" id="chronBtn">Chronicle</button>
   <button class="hbtn" id="provBtn">Provinces</button>
@@ -634,7 +634,7 @@ function buildGrid(){
       const frac = visibleFraction(cx, cy, r, F);
       if(frac <= 0.001) continue;
       const playable = row>=1 && row<=NROWS && c>=0 && c<NCOLS && frac >= 0.499;
-      const h = {row, col:c, cx, cy, full: playable, id: playable ? (colLetter(c)+row) : null};
+      const h = {row, col:c, cx, cy, frac, full: playable, id: playable ? (colLetter(c)+row) : null};
       HEX.push(h);
       if(h.id) byId[h.id] = h;
     }
@@ -678,7 +678,11 @@ function renderStatic(){
   const r = R();
   for(const h of HEX){
     if(!h.full){
-      el('polygon',{points:ptsStr(verts(h.cx,h.cy,r)), fill:"#0d0b08", "fill-opacity":.97, stroke:"#0d0b08","stroke-width":1.5,"stroke-opacity":.97}, layers.permFog);
+      /* Sub-50% areas are margin, not play area. Tiny slivers (notches between
+         rim hexes, edge slivers) render as open art like the map bleed; only
+         substantial partials (the ~47% corners) stay curtained. */
+      if(h.frac >= 0.15)
+        el('polygon',{points:ptsStr(verts(h.cx,h.cy,r)), fill:"#0d0b08", "fill-opacity":.97, stroke:"#0d0b08","stroke-width":1.5,"stroke-opacity":.97}, layers.permFog);
       continue;
     }
     h.fillEl = el('polygon',{points:ptsStr(verts(h.cx,h.cy,r)), class:"hexFill"}, layers.fills);
