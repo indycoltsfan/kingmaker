@@ -238,7 +238,7 @@ svg.showCoords .coordLbl{opacity:.55}
     <div class="title">The Stolen Lands<span class="tail"> <span class="amp">&</span> the Kingdom Thereof</span></div>
   </div>
   <div class="sub">A Chronicle of Exploration &amp; Rule</div>
-  <div id="draftTag">v0.10 · cal v5</div>
+  <div id="draftTag">v0.10.1 · cal v5</div>
   <div class="spacer"></div>
   <button class="hbtn" id="authBtn">Sign in</button>
   <button class="hbtn" id="chronBtn">Chronicle</button>
@@ -479,7 +479,7 @@ function applyRole(){
   $('paintBtn').style.display = ROLE==="gm" ? "" : "none";
   if(ROLE!=="gm" && paintMode) $('paintBtn').click();
   $('loadBtn').style.display = ROLE==="gm" ? "" : "none";
-  if(selected) openPanel(selected);
+  if(selected && !typingInto(selected.id)) openPanel(selected);
   listProvinces(); listChronicle();
 }
 $('authBtn').onclick = async ()=>{
@@ -577,7 +577,12 @@ function subscribeRealtime(){
     .on('postgres_changes', {event:'*', schema:'public', table:'hexes'}, p=>{
       if(p.eventType==='DELETE'){ if(p.old&&p.old.id){ delete DATA.hexes[p.old.id]; if(byId[p.old.id]) refreshHex(byId[p.old.id]); save(); } return; }
       const r = p.new; if(!r||!r.id) return;
-      DATA.hexes[r.id] = {status:r.status, name:r.name, notes:r.notes, marks:r.marks||[]};
+      if(typingInto(r.id)){
+        const cur = hexGet(r.id);   // keep the keystrokes; accept remote status/marks
+        DATA.hexes[r.id] = {status:r.status, name:cur.name, notes:cur.notes, marks:r.marks||[]};
+      } else {
+        DATA.hexes[r.id] = {status:r.status, name:r.name, notes:r.notes, marks:r.marks||[]};
+      }
       save();
       if(byId[r.id]) refreshHex(byId[r.id]);
       renderRegions();
@@ -591,7 +596,7 @@ function subscribeRealtime(){
         if(cur) Object.assign(cur, val); else DATA.regions.push(val);
       }
       save(); renderRegions(); listProvinces();
-      if(selected) openPanel(selected);
+      if(selected && !typingInto(selected.id)) openPanel(selected);
     })
     .on('postgres_changes', {event:'*', schema:'public', table:'sessions'}, p=>{
       if(p.eventType==='DELETE'){ if(p.old&&p.old.id) DATA.sessions = DATA.sessions.filter(x=>x.id!==p.old.id); }
@@ -1053,8 +1058,8 @@ function openPanel(h){
   const st = hexGet(h.id);
   $('pCoord').textContent = h.id + (st.name && st.status!=="unexplored" ? "" : "");
   $('pNameView').textContent = st.status==="unexplored" ? "Uncharted territory" : (st.name || "Unnamed hex");
-  $('hexName').value = st.name||"";
-  $('hexNotes').value = st.notes||"";
+  if(document.activeElement !== $('hexName'))  $('hexName').value  = st.name||"";
+  if(document.activeElement !== $('hexNotes')) $('hexNotes').value = st.notes||"";
   $('pNotesView').textContent = st.notes || (st.status==="unexplored" ? "No survey has reached this hex." : "No field notes yet.");
   const gmish = !CLOUD || ROLE==="gm";
   const canEditHex = editMode && (gmish || st.status!=="unexplored");
@@ -1090,6 +1095,14 @@ function openPanel(h){
 $('panelClose').onclick=()=>{ $('panel').classList.remove('open'); layers.sel.innerHTML=""; selected=null; };
 $('hexName').addEventListener('input', e=>{ if(selected){ hex(selected.id).name=e.target.value; save(); refreshHex(selected); pushHex(selected.id); }});
 $('hexNotes').addEventListener('input', e=>{ if(selected){ hex(selected.id).notes=e.target.value; save(); pushHex(selected.id); }});
+['hexName','hexNotes'].forEach(id=>$(id).addEventListener('blur', ()=>{
+  if(selected && pendHex[selected.id]){ clearTimeout(pendHex[selected.id]); delete pendHex[selected.id];
+    const st=hexGet(selected.id);
+    const row={id:selected.id, status:st.status, name:st.name||'', notes:st.notes||'', marks:st.marks||[]};
+    if(CLOUD&&sbc) (ROLE==="gm" ? sbc.from('hexes').upsert(row) : sbc.from('hexes').update(row).eq('id',selected.id))
+      .then(r=>{ if(r.error) toast("The realm refused that change: "+r.error.message); });
+  }
+}));
 document.querySelectorAll('#statusSeg button').forEach(b=>b.onclick=()=>{
   if(!selected||!editMode||b.disabled) return;
   hex(selected.id).status=b.dataset.s; save(); refreshHex(selected); pushHex(selected.id); openPanel(selected);
