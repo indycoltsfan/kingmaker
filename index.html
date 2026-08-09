@@ -163,7 +163,10 @@ svg.showCoords .coordLbl{opacity:.55}
 .cbar{display:flex;align-items:center;gap:10px;font-size:13.5px}
 .cbar .bn{width:74px;color:var(--parch-dim)}
 .cbar .bt{flex:1;height:9px;background:#171310;border-radius:5px;overflow:hidden;border:1px solid var(--edge)}
-.cbar .bf{height:100%;background:var(--brass);border-radius:5px}
+.cbar .bf{display:block;height:100%;border-radius:5px;background-repeat:no-repeat;background-position:left center}
+.cbar .bf.grad-danger{background-image:linear-gradient(90deg,#5b8a72 0%,#8a8a4a 40%,#b08d3f 65%,#a3542f 85%,#8a3527 100%)}
+.cbar .bf.grad-wealth{background-image:linear-gradient(90deg,#7a6230 0%,#b08d3f 45%,#d8b366 75%,#c96f3a 92%,#b04f2f 100%)}
+.cbar .bv.hot{color:#c98a7f;font-weight:700}
 .cbar .bv{font-family:var(--mono);font-size:12px;color:var(--parch-dim);width:44px;text-align:right}
 .ctable{width:100%;border-collapse:collapse;font-size:13.5px}
 .ctable td,.ctable th{padding:6px 8px;border-top:1px solid var(--edge);text-align:left}
@@ -282,7 +285,7 @@ svg.showCoords .coordLbl{opacity:.55}
     <div class="title">The Stolen Lands<span class="tail"> <span class="amp">&</span> the Kingdom Thereof</span></div>
   </div>
   <div class="sub">A Chronicle of Exploration &amp; Rule</div>
-  <div id="draftTag">v0.12 · cal v5</div>
+  <div id="draftTag">v0.13 · cal v5</div>
   <div class="spacer"></div>
   <button class="hbtn" id="authBtn">Sign in</button>
   <button class="hbtn" id="courtBtn">Kingdom</button>
@@ -448,6 +451,10 @@ svg.showCoords .coordLbl{opacity:.55}
 
 <aside class="drawer" id="chronDrawer">
   <div class="dhead"><h2>The Chronicle</h2><button class="dclose" data-close="chronDrawer">✕</button></div>
+  <div style="display:flex;gap:6px;padding:10px 18px 0">
+    <button class="hbtn on" id="tabSessions" style="flex:1">Sessions</button>
+    <button class="hbtn" id="tabAnnals" style="flex:1">Kingdom Turns</button>
+  </div>
   <div class="dbody">
     <div class="card editonly" id="chronNew" style="display:none">
       <div class="flabel">New entry</div>
@@ -457,6 +464,7 @@ svg.showCoords .coordLbl{opacity:.55}
       <button class="btn" id="ceAdd" style="margin-top:8px">Record entry</button>
     </div>
     <div id="chronList"></div>
+    <div id="annalsList" style="display:none"></div>
   </div>
 </aside>
 
@@ -692,7 +700,7 @@ async function cloudBoot(){
    SHEET boots from an embedded snapshot, then lazily upgrades to a live pull of
    the group's shared Google Sheet (whole-workbook xlsx export, parsed with
    SheetJS). Cached in localStorage; refreshed when older than TTL. */
-let SHEET = {"kingdom": "New Bork City", "settlements": {"Borklahoma": {"stats": {"type": "Village", "population": 424, "level": 1, "blocks": 1, "lots": 4, "residential": 4, "overcrowded": false, "consumption": 1, "maxItemBonus": 1, "influence": 1}, "structures": [{"name": "Tenement", "block": "A", "pos": "A1", "seq": 1, "size": 1.0, "residential": 1.0, "edifice": false, "bonus": null, "effects": "The first time you build tenements each Kingdom turn, reduce Unrest by 1.", "img": "http://kingmaker-sheet.s3.amazonaws.com/structures/tenement.jpg"}, {"name": "Tenement", "block": "A", "pos": "A2", "seq": 2, "size": 1.0, "residential": 1.0, "edifice": false, "bonus": null, "effects": "The first time you build tenements each Kingdom turn, reduce Unrest by 1.", "img": "http://kingmaker-sheet.s3.amazonaws.com/structures/tenement.jpg"}, {"name": "Tenement", "block": "A", "pos": "A3", "seq": 3, "size": 1.0, "residential": 1.0, "edifice": false, "bonus": null, "effects": "The first time you build tenements each Kingdom turn, reduce Unrest by 1.", "img": "http://kingmaker-sheet.s3.amazonaws.com/structures/tenement.jpg"}, {"name": "Tenement", "block": "A", "pos": "A4", "seq": 4, "size": 1.0, "residential": 1.0, "edifice": false, "bonus": null, "effects": "The first time you build tenements each Kingdom turn, reduce Unrest by 1.", "img": "http://kingmaker-sheet.s3.amazonaws.com/structures/tenement.jpg"}], "sides": {"N": {"water": false, "bridge": false, "wallWood": false, "wallStone": false}, "E": {"water": false, "bridge": false, "wallWood": false, "wallStone": false}, "S": {"water": true, "bridge": false, "wallWood": false, "wallStone": false}, "W": {"water": false, "bridge": false, "wallWood": false, "wallStone": false}}, "infra": {"streetlamps": false, "paved": false, "sewer": false}, "civicLevel": 0}}, "court": {"name": "New Bork City", "capital": "Borklahoma", "level": 1.0, "xp": 220.0, "fame": 1.0, "partyLevel": null, "charter": "Exploration", "heartland": "Hill or Plain", "government": "Oligarchy", "size": 2.0, "resourceDice": 6.0, "resourceDie": "d4", "controlDC": 14.0, "unrest": 0.0, "unrestPenalty": 0.0, "atWar": false, "tappedTreasury": false, "consumption": {"settlement": 1.0, "army": 0.0, "tradeAgreements": 0.0}, "renown": null, "abilities": [{"name": "Culture", "mod": 2.0, "score": 14.0}, {"name": "Economy", "mod": 2.0, "score": 14.0}, {"name": "Loyalty", "mod": 2.0, "score": 14.0}, {"name": "Stability", "mod": 2.0, "score": 14.0}], "ruin": [{"name": "Corruption", "score": 0, "penalty": 0, "threshold": 5.0}, {"name": "Crime", "score": 0, "penalty": 0, "threshold": 5.0}, {"name": "Decay", "score": 0, "penalty": 0, "threshold": 5.0}, {"name": "Strife", "score": 0, "penalty": 0, "threshold": 5.0}], "commodities": [{"name": "Food", "cur": 0, "max": 4.0}, {"name": "Lumber", "cur": 0, "max": 4.0}, {"name": "Luxuries", "cur": 0, "max": 4.0}, {"name": "Ore", "cur": 0, "max": 4.0}, {"name": "Stone", "cur": 2.0, "max": 4.0}], "workSites": [{"name": "Farmlands", "count": 0}, {"name": "Lumber Camps", "count": 1.0}, {"name": "Mines", "count": 0}, {"name": "Quarries", "count": 0}], "leaders": [{"name": "Torvir", "role": "Ruler", "bonus": 2.0, "pc": true, "vacant": false}, {"name": "Linzi", "role": "Counselor", "bonus": 1.0, "pc": false, "vacant": false}, {"name": "Jurgen/Vaenist", "role": "General", "bonus": 2.0, "pc": true, "vacant": false}, {"name": "Bork Bork", "role": "Emissary", "bonus": 1.0, "pc": true, "vacant": false}, {"name": "Demiti-70", "role": "Magister", "bonus": 2.0, "pc": true, "vacant": false}, {"name": "Tufor", "role": "Treasurer", "bonus": 1.0, "pc": true, "vacant": false}, {"name": "Zarkryth", "role": "Viceroy", "bonus": 2.0, "pc": true, "vacant": false}, {"name": "Pan-Chot", "role": "Warden", "bonus": 2.0, "pc": true, "vacant": false}], "skills": [{"name": "Agriculture", "total": 5.0, "ability": "Stability", "prof": "T"}, {"name": "Arts", "total": 5.0, "ability": "Culture", "prof": "T"}, {"name": "Boating", "total": 3.0, "ability": "Economy", "prof": null}, {"name": "Defense", "total": 5.0, "ability": "Stability", "prof": "T"}, {"name": "Engineering", "total": 5.0, "ability": "Stability", "prof": "T"}, {"name": "Exploration", "total": 5.0, "ability": "Economy", "prof": "T"}, {"name": "Folklore", "total": 2.0, "ability": "Culture", "prof": null}, {"name": "Industry", "total": 5.0, "ability": "Economy", "prof": "T"}, {"name": "Intrigue", "total": 3.0, "ability": "Loyalty", "prof": null}, {"name": "Magic", "total": 6.0, "ability": "Culture", "prof": "T"}, {"name": "Politics", "total": 3.0, "ability": "Loyalty", "prof": null}, {"name": "Scholarship", "total": 2.0, "ability": "Culture", "prof": null}, {"name": "Statecraft", "total": 3.0, "ability": "Loyalty", "prof": null}, {"name": "Trade", "total": 6.0, "ability": "Economy", "prof": "T"}, {"name": "Warfare", "total": 5.0, "ability": "Loyalty", "prof": "T"}, {"name": "Wilderness", "total": 5.0, "ability": "Stability", "prof": "T"}], "feats": [{"level": 1.0, "name": "Insider Trading", "desc": "Your leading citizens share valuable business information with one another and with associates in other lands, and they hire one another\u2019s workers to supply the labor they need to fuel their production. You gain a +1 status bonus to Establish Work Site, Establish Trade Agreement, and Trade Commodities activities. In addition, gain 1 bonus Resource Die at the start of each Kingdom turn."}]}, "turn": {"activeLeader": "Bork Bork", "leaderRole": "Emissary", "settlement": "Borklahoma", "eventUnrest": 0, "extraUnrest": 0, "bonusDice": 0, "penaltyDice": 0, "diceStr": "6d4", "acc": {"Generic": 0, "RP": 18.0, "Culture": 0, "Food": 0, "Economy": 0, "Lumber": 0, "Loyalty": 0, "Luxuries": 0, "Stability": 0, "Ore": 0, "Fame": 2.0, "Stone": 2.0, "Corruption": 0, "Decay": 0, "Crime": 0, "Strife": 0, "Unrest": 0, "Control DC": 14.0}, "year": 4723.0, "month": "Desnus"}};
+let SHEET = {"kingdom": "New Bork City", "settlements": {"Borklahoma": {"stats": {"type": "Village", "population": 424, "level": 1, "blocks": 1, "lots": 4, "residential": 4, "overcrowded": false, "consumption": 1, "maxItemBonus": 1, "influence": 1}, "structures": [{"name": "Tenement", "block": "A", "pos": "A1", "seq": 1, "size": 1.0, "residential": 1.0, "edifice": false, "bonus": null, "effects": "The first time you build tenements each Kingdom turn, reduce Unrest by 1.", "img": "http://kingmaker-sheet.s3.amazonaws.com/structures/tenement.jpg"}, {"name": "Tenement", "block": "A", "pos": "A2", "seq": 2, "size": 1.0, "residential": 1.0, "edifice": false, "bonus": null, "effects": "The first time you build tenements each Kingdom turn, reduce Unrest by 1.", "img": "http://kingmaker-sheet.s3.amazonaws.com/structures/tenement.jpg"}, {"name": "Tenement", "block": "A", "pos": "A3", "seq": 3, "size": 1.0, "residential": 1.0, "edifice": false, "bonus": null, "effects": "The first time you build tenements each Kingdom turn, reduce Unrest by 1.", "img": "http://kingmaker-sheet.s3.amazonaws.com/structures/tenement.jpg"}, {"name": "Tenement", "block": "A", "pos": "A4", "seq": 4, "size": 1.0, "residential": 1.0, "edifice": false, "bonus": null, "effects": "The first time you build tenements each Kingdom turn, reduce Unrest by 1.", "img": "http://kingmaker-sheet.s3.amazonaws.com/structures/tenement.jpg"}], "sides": {"N": {"water": false, "bridge": false, "wallWood": false, "wallStone": false}, "E": {"water": false, "bridge": false, "wallWood": false, "wallStone": false}, "S": {"water": true, "bridge": false, "wallWood": false, "wallStone": false}, "W": {"water": false, "bridge": false, "wallWood": false, "wallStone": false}}, "infra": {"streetlamps": false, "paved": false, "sewer": false}, "civicLevel": 0}}, "court": {"name": "New Bork City", "capital": "Borklahoma", "level": 1.0, "xp": 220.0, "fame": 1.0, "partyLevel": null, "charter": "Exploration", "heartland": "Hill or Plain", "government": "Oligarchy", "size": 2.0, "resourceDice": 6.0, "resourceDie": "d4", "controlDC": 14.0, "unrest": 0.0, "unrestPenalty": 0.0, "atWar": false, "tappedTreasury": false, "consumption": {"settlement": 1.0, "army": 0.0, "tradeAgreements": 0.0}, "renown": null, "abilities": [{"name": "Culture", "mod": 2.0, "score": 14.0}, {"name": "Economy", "mod": 2.0, "score": 14.0}, {"name": "Loyalty", "mod": 2.0, "score": 14.0}, {"name": "Stability", "mod": 2.0, "score": 14.0}], "ruin": [{"name": "Corruption", "score": 0, "penalty": 0, "threshold": 5.0}, {"name": "Crime", "score": 0, "penalty": 0, "threshold": 5.0}, {"name": "Decay", "score": 0, "penalty": 0, "threshold": 5.0}, {"name": "Strife", "score": 0, "penalty": 0, "threshold": 5.0}], "commodities": [{"name": "Food", "cur": 0, "max": 4.0}, {"name": "Lumber", "cur": 0, "max": 4.0}, {"name": "Luxuries", "cur": 0, "max": 4.0}, {"name": "Ore", "cur": 0, "max": 4.0}, {"name": "Stone", "cur": 2.0, "max": 4.0}], "workSites": [{"name": "Farmlands", "count": 0}, {"name": "Lumber Camps", "count": 1.0}, {"name": "Mines", "count": 0}, {"name": "Quarries", "count": 0}], "leaders": [{"name": "Torvir", "role": "Ruler", "bonus": 2.0, "pc": true, "vacant": false}, {"name": "Linzi", "role": "Counselor", "bonus": 1.0, "pc": false, "vacant": false}, {"name": "Jurgen/Vaenist", "role": "General", "bonus": 2.0, "pc": true, "vacant": false}, {"name": "Bork Bork", "role": "Emissary", "bonus": 1.0, "pc": true, "vacant": false}, {"name": "Demiti-70", "role": "Magister", "bonus": 2.0, "pc": true, "vacant": false}, {"name": "Tufor", "role": "Treasurer", "bonus": 1.0, "pc": true, "vacant": false}, {"name": "Zarkryth", "role": "Viceroy", "bonus": 2.0, "pc": true, "vacant": false}, {"name": "Pan-Chot", "role": "Warden", "bonus": 2.0, "pc": true, "vacant": false}], "skills": [{"name": "Agriculture", "total": 5.0, "ability": "Stability", "prof": "T"}, {"name": "Arts", "total": 5.0, "ability": "Culture", "prof": "T"}, {"name": "Boating", "total": 3.0, "ability": "Economy", "prof": null}, {"name": "Defense", "total": 5.0, "ability": "Stability", "prof": "T"}, {"name": "Engineering", "total": 5.0, "ability": "Stability", "prof": "T"}, {"name": "Exploration", "total": 5.0, "ability": "Economy", "prof": "T"}, {"name": "Folklore", "total": 2.0, "ability": "Culture", "prof": null}, {"name": "Industry", "total": 5.0, "ability": "Economy", "prof": "T"}, {"name": "Intrigue", "total": 3.0, "ability": "Loyalty", "prof": null}, {"name": "Magic", "total": 6.0, "ability": "Culture", "prof": "T"}, {"name": "Politics", "total": 3.0, "ability": "Loyalty", "prof": null}, {"name": "Scholarship", "total": 2.0, "ability": "Culture", "prof": null}, {"name": "Statecraft", "total": 3.0, "ability": "Loyalty", "prof": null}, {"name": "Trade", "total": 6.0, "ability": "Economy", "prof": "T"}, {"name": "Warfare", "total": 5.0, "ability": "Loyalty", "prof": "T"}, {"name": "Wilderness", "total": 5.0, "ability": "Stability", "prof": "T"}], "feats": [{"level": 1.0, "name": "Insider Trading", "desc": "Your leading citizens share valuable business information with one another and with associates in other lands, and they hire one another\u2019s workers to supply the labor they need to fuel their production. You gain a +1 status bonus to Establish Work Site, Establish Trade Agreement, and Trade Commodities activities. In addition, gain 1 bonus Resource Die at the start of each Kingdom turn."}]}, "turn": {"activeLeader": "Bork Bork", "leaderRole": "Emissary", "settlement": "Borklahoma", "eventUnrest": 0, "extraUnrest": 0, "bonusDice": 0, "penaltyDice": 0, "diceStr": "6d4", "acc": {"Generic": 0, "RP": 18.0, "Culture": 0, "Food": 0, "Economy": 0, "Lumber": 0, "Loyalty": 0, "Luxuries": 0, "Stability": 0, "Ore": 0, "Fame": 2.0, "Stone": 2.0, "Corruption": 0, "Decay": 0, "Crime": 0, "Strife": 0, "Unrest": 0, "Control DC": 14.0}, "year": 4723.0, "month": "Desnus"}, "annals": [{"year": 4723, "month": "Pharast", "notes": "Month before founding. Change the date to the start of your campaign.", "stats": {"Hexes claimed": 1.0}}, {"year": 4723, "month": "Gozran", "notes": "established New Bork City and capital of Borklahoma. Lumber land in the trees. INDEPENDENCE DAY", "stats": {"XP": 220.0, "Fame": 1.0, "Stone": 2.0, "Hexes claimed": 1.0, "Lumber Camps": 1.0}}]};
 let SHEET_SOURCE = "snapshot";      // snapshot | live
 let SHEET_AT = null;                // Date of live data
 const SHEET_ID = "1LkyRyaYfpaU6LIWFlSRjf1UHXxWWMtlOQisvmonfGTM";
@@ -795,6 +803,26 @@ function parseWorkbook(wb){
       }
     }
     out.turn = turn;
+    const hs2 = wb.Sheets['History'];
+    if(hs2){
+      const HN = a => { const v = XC(hs2,a); const n = parseFloat(v); return v===""||isNaN(n) ? null : n; };
+      const COLS = [['D','XP'],['E','Fame'],['F','Unrest'],['G','Corruption'],['H','Crime'],['I','Decay'],['J','Strife'],
+        ['K','Food'],['L','Lumber'],['M','Luxuries'],['N','Ore'],['O','Stone'],
+        ['P','Hexes claimed'],['Q','Hexes fortified'],['R','Farmlands'],['S','Lumber Camps'],['T','Mines'],['U','Quarries']];
+      let startRow = null;
+      for(let r=1;r<=15;r++) if(String(XC(hs2,'A'+r)).trim().startsWith('Past Turns')){ startRow=r+1; break; }
+      if(startRow){
+        const annals = [];
+        const rng2 = window.XLSX.utils.decode_range(hs2['!ref'] || 'A1:AC50');
+        for(let r=startRow; r<=rng2.e.r+1; r++){
+          const y = HN('A'+r); if(y==null) continue;
+          const e = {year: Math.round(y), month: String(XC(hs2,'B'+r))||null, notes: String(XC(hs2,'C'+r)).trim(), stats:{}};
+          for(const [c,label] of COLS){ const v = HN(c+r); if(v) e.stats[label]=v; }
+          annals.push(e);
+        }
+        out.annals = annals;
+      }
+    }
   }
   for(const name of wb.SheetNames){
     const ws = wb.Sheets[name];
@@ -832,6 +860,7 @@ function adoptLedger(parsed, when){
   if(selected) renderSettlementSection(hexGet(selected.id));
   if(typeof renderTurnPlaque === "function") renderTurnPlaque();
   if($('courtBk').classList.contains('show')){ openCourt(); }
+  if(typeof chronTab !== "undefined" && chronTab==="annals" && $('chronDrawer').classList.contains('open')) listAnnals();
 }
 function loadLedgerCache(){
   try{
@@ -1379,16 +1408,20 @@ function openCourt(){
     ab.appendChild(d);
   }
   const ru = $('courtRuin'); ru.innerHTML="";
-  const bar = (parent, name, cur, max, extra)=>{
+  const bar = (parent, name, cur, max, kind)=>{
     const d=document.createElement('div'); d.className="cbar";
     const pct = max>0 ? Math.min(100, 100*cur/max) : 0;
-    d.innerHTML=`<span class="bn">${name}</span><span class="bt"><span class="bf" style="width:${pct}%"></span></span><span class="bv">${cur}${max?` / ${max}`:""}</span>${extra||""}`;
+    // gradient is anchored to the full track: fill acts as a window onto it,
+    // so the color at the fill's edge encodes how close to the cap you are
+    const bg = pct > 0 ? `background-size:${(10000/pct).toFixed(1)}% 100%` : "";
+    const hot = max>0 && cur/max >= 0.8;
+    d.innerHTML=`<span class="bn">${name}</span><span class="bt"><span class="bf grad-${kind}" style="width:${pct}%;${bg}"></span></span><span class="bv${hot?" hot":""}">${cur}${max?` / ${max}`:""}</span>`;
     parent.appendChild(d);
   };
-  bar(ru, "Unrest", K.unrest??0, 10);
-  for(const r of (K.ruin||[])) bar(ru, r.name, r.score, r.threshold);
+  bar(ru, "Unrest", K.unrest??0, 10, "danger");
+  for(const r of (K.ruin||[])) bar(ru, r.name, r.score, r.threshold, "danger");
   const co = $('courtComm'); co.innerHTML="";
-  for(const c of (K.commodities||[])) bar(co, c.name, c.cur, c.max);
+  for(const c of (K.commodities||[])) bar(co, c.name, c.cur, c.max, "wealth");
   const wk = $('courtWork'); wk.innerHTML="";
   for(const w of (K.workSites||[])){ const c=document.createElement('span'); c.className="cchip"; c.innerHTML=`${w.name} <b>${w.count}</b>`; wk.appendChild(c); }
   if(K.consumption){ const c=document.createElement('span'); c.className="cchip";
@@ -1537,6 +1570,50 @@ $('ceAdd').onclick=()=>{
   DATA.sessions.unshift(entry);
   save(); $('ceTitle').value=""; $('ceText').value=""; listChronicle(); pushSession(entry);
 };
+let chronTab = "sessions";
+function setChronTab(t){
+  chronTab = t;
+  $('tabSessions').classList.toggle('on', t==="sessions");
+  $('tabAnnals').classList.toggle('on', t==="annals");
+  $('chronList').style.display = t==="sessions" ? "" : "none";
+  $('chronNew').style.display = (t==="sessions" && editMode) ? "" : "none";
+  $('annalsList').style.display = t==="annals" ? "" : "none";
+  if(t==="annals") listAnnals();
+}
+$('tabSessions').onclick = ()=>setChronTab("sessions");
+$('tabAnnals').onclick = ()=>setChronTab("annals");
+function listAnnals(){
+  const L = $('annalsList'); L.innerHTML = "";
+  const T = SHEET.turn, A = (SHEET.annals||[]).slice().reverse();
+  const mins = SHEET_AT ? Math.round((Date.now()-SHEET_AT.getTime())/60000) : null;
+  const src = document.createElement('div');
+  src.className = "empty";
+  src.style.cssText = "font-style:normal;font-size:11px;letter-spacing:.16em;text-transform:uppercase;padding:0 2px 4px";
+  src.textContent = SHEET_SOURCE==="live" ? (mins<1 ? "LIVE LEDGER" : `LEDGER · ${mins}m OLD`) : "LEDGER SNAPSHOT";
+  src.style.color = SHEET_SOURCE==="live" ? "#9fc79b" : "var(--parch-faint)";
+  L.appendChild(src);
+  const chipRow = stats => Object.entries(stats||{}).map(([k,v])=>
+    `<span class="chip" style="font-size:11.5px">${k} <b style="color:var(--brass-bright)">${v>0?"+":""}${v}</b></span>`).join(" ");
+  if(T && (T.month || T.activeLeader)){
+    const c = document.createElement('div'); c.className="card";
+    c.style.borderColor = "var(--brass-dark)";
+    c.innerHTML = `<h3>${[T.month,T.year].filter(Boolean).join(" ")} <span class="pcbadge" style="margin-left:6px">IN PROGRESS</span></h3>
+      <div class="meta">${T.activeLeader ? `${escapeHtml(T.activeLeader)}${T.leaderRole?`, ${escapeHtml(T.leaderRole)},`:""} presiding` : "Kingdom turn underway"}</div>`;
+    L.appendChild(c);
+  }
+  if(!A.length){
+    const d = document.createElement('div'); d.className="empty";
+    d.textContent = "The annals are blank — the kingdom's history begins with its first completed turn.";
+    L.appendChild(d);
+  }
+  for(const e of A){
+    const c = document.createElement('div'); c.className="card";
+    c.innerHTML = `<h3>${[e.month,e.year].filter(Boolean).join(" ")}</h3>
+      ${e.notes?`<div class="body">${escapeHtml(e.notes)}</div>`:""}
+      <div class="chiprow" style="margin-top:8px">${chipRow(e.stats)}</div>`;
+    L.appendChild(c);
+  }
+}
 function listChronicle(){
   const L=$('chronList'); L.innerHTML="";
   if(!DATA.sessions.length){
@@ -1549,14 +1626,14 @@ function listChronicle(){
     if(editMode && (!CLOUD || ROLE==="gm")) c.querySelector('[data-a=del]').onclick=()=>{ if(confirm("Remove this entry?")){ DATA.sessions=DATA.sessions.filter(x=>x!==s); save(); listChronicle(); cloudDeleteSession(s.id); }};
     L.appendChild(c);
   });
-  $('chronNew').style.display = editMode ? "" : "none";
+  $('chronNew').style.display = (editMode && chronTab==="sessions") ? "" : "none";
 }
 
 /* ============ drawers / modal ============ */
 function openDrawer(id){ document.querySelectorAll('.drawer').forEach(d=>d.classList.remove('open')); $(id).classList.add('open'); }
 function closeDrawer(id){ $(id).classList.remove('open'); }
 $('provBtn').onclick=()=>{ listProvinces(); openDrawer('provDrawer'); };
-$('chronBtn').onclick=()=>{ listChronicle(); openDrawer('chronDrawer'); };
+$('chronBtn').onclick=()=>{ listChronicle(); if(chronTab==="annals") listAnnals(); openDrawer('chronDrawer'); };
 document.querySelectorAll('.dclose').forEach(b=>b.onclick=()=>closeDrawer(b.dataset.close));
 $('ackBtn').onclick=()=>$('modalBk').classList.add('show');
 $('modalClose').onclick=()=>$('modalBk').classList.remove('show');
