@@ -337,7 +337,7 @@ svg.showCoords .coordLbl{opacity:.55}
     <div class="title">The Stolen Lands<span class="tail"> <span class="amp">&</span> the Kingdom Thereof</span></div>
   </div>
   <div class="sub">A Chronicle of Exploration &amp; Rule</div>
-  <div id="draftTag">v0.16 · cal v5</div>
+  <div id="draftTag">v0.16.2 · cal v5</div>
   <div class="spacer"></div>
   <button class="hbtn" id="authBtn">Sign in</button>
   <button class="hbtn" id="turnBtn" style="display:none">Turn</button>
@@ -1883,10 +1883,19 @@ function renderChamber(resetScroll=true){
         };
         $('upTakeUnrest').onclick = ()=>applyUnrest(1 + Math.floor(Math.random()*4));
         $('upUnrestManW').onclick = ()=>{ const v = Number($('upUnrestMan').value||0); if(v>0) applyUnrest(v); };
+      } else if(due > 0){
+        $('upSettleRow').style.display = "";
+        $('upPayRP').textContent = `Spend ${due} Food from stores`;
+        $('upPayRP').disabled = false; $('upPayRP').style.opacity = "";
+        $('upTakeUnrest').style.display = "none";
+        $('upUnrestMan').style.display = "none"; $('upUnrestManW').style.display = "none";
+        $('upConNote').textContent = "The tally's Food IS the kingdom's stores — spending consumption means stepping it down. Nothing deducts automatically. (Farmlands already reduced the due shown.)";
+        $('upPayRP').onclick = async ()=>{
+          const nv = await applyTallyDelta("Food", -due);
+          if(nv !== false) ledgerAdd(`Spent ${due} Food from stores for consumption (→ ${nv})`, "Upkeep");
+        };
       } else {
-        $('upConNote').textContent = due > 0
-          ? "The granary covers this turn's consumption — the Food is spent when the turn is committed in the sheet."
-          : "Nothing owed this turn.";
+        $('upConNote').textContent = "Nothing owed this turn.";
       }
     }
   }
@@ -1926,7 +1935,7 @@ function renderChamber(resetScroll=true){
       }
     }
     html += `<h3>Apply gains &amp; losses (writes the tracker's tally)</h3><div class="stepgrid" id="accGrid"></div>
-      <div class="chnote">These steppers write the Turn Tracker's own accumulator strip — the same cells "Save Kingdom Turn" reads.</div>`;
+      <div class="chnote">Commodities, Unrest, Ruin, and Fame here are the kingdom's running totals — gains raise them, spending lowers them, and they carry between turns. RP and circumstance bonuses are per-turn.</div>`;
     B.innerHTML = html;
     renderTally($('accGrid'));
     B.querySelectorAll('.actbox').forEach(x=>x.onclick=()=>{ openAct = (openAct===x.dataset.a)? null : x.dataset.a; renderChamber(false); });
@@ -2012,17 +2021,17 @@ function renderChamber(resetScroll=true){
       <div class="chnote" style="font-size:14px">Everything this chamber wrote is already in the tracker. The sheet's own <b>"Save Kingdom Turn"</b> button performs the actual commit — it files this turn into history and rolls the kingdom forward. Press it there, then return here and close the turn.</div>
       <div class="chrow">
         <a class="rollbtn" style="text-decoration:none" target="_blank" rel="noopener" href="https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit">Open the Kingdom Sheet ↗</a>
-        <button class="rollbtn" id="cmSweep">Sweep the tally to zero for the new turn</button>
+        <button class="rollbtn" id="cmSweep">Clear per-turn circumstance bonuses</button>
         <button class="rollbtn" id="cmDone" style="border-color:#6e352c;color:#c98a7f">Turn saved in sheet — clear the chamber</button>
       </div>`;
     $('cmNotes').addEventListener('input', e=>{ TURN.notes = e.target.value; turnSave(); });
     $('cmWrite').onclick = ()=>writeCell("History!C4", $('cmNotes').value, "Turn notes");
     $('cmSweep').onclick = async ()=>{
-      if(!confirm("Zero the tracker's tally (commodities, unrest, ruin, circumstance bonuses)? Do this AFTER Save Kingdom Turn. Fame is left alone — the sheet manages it.")) return;
-      const cells = ["C2","D2","E2","F2","G2","I2","J2","K2","C4","D4","E4","F4","G4","H4","I4","J4"];
-      const ok = await sheetsBatch(cells.map(c=>[`'Turn Tracker'!${c}`, 0]), "Tally swept");
-      if(ok){ if(SHEET.turn && SHEET.turn.acc) for(const k in SHEET.turn.acc){ if(k!=="Fame" && k!=="Control DC") SHEET.turn.acc[k]=0; }
-        ledgerAdd("Tally swept to zero for the new turn", "Commit"); }
+      if(!confirm("Clear the per-turn circumstance bonuses (Generic/Culture/Economy/Loyalty/Stability)? Commodities, Unrest, Ruin, and Fame are the kingdom's RUNNING TOTALS and are never swept — they carry between turns by design.")) return;
+      const cells = ["C2","D2","E2","F2","G2"];
+      const ok = await sheetsBatch(cells.map(c=>[`'Turn Tracker'!${c}`, 0]), "Circumstance bonuses cleared");
+      if(ok){ if(SHEET.turn && SHEET.turn.acc) for(const k of ["Generic","Culture","Economy","Loyalty","Stability"]) SHEET.turn.acc[k]=0;
+        ledgerAdd("Per-turn circumstance bonuses cleared", "Commit"); }
     };
     $('cmDone').onclick = ()=>{ if(confirm("Clear the ledger and reset the chamber for the next turn?")){
       TURN = {phase:"upkeep", ledger:[], notes:""}; turnSave(); refreshSheetLive(true); renderChamber(); }};
