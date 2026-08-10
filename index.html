@@ -337,7 +337,7 @@ svg.showCoords .coordLbl{opacity:.55}
     <div class="title">The Stolen Lands<span class="tail"> <span class="amp">&</span> the Kingdom Thereof</span></div>
   </div>
   <div class="sub">A Chronicle of Exploration &amp; Rule</div>
-  <div id="draftTag">v0.15.2 · cal v5</div>
+  <div id="draftTag">v0.15.3 · cal v5</div>
   <div class="spacer"></div>
   <button class="hbtn" id="authBtn">Sign in</button>
   <button class="hbtn" id="turnBtn" style="display:none">Turn</button>
@@ -1683,8 +1683,14 @@ function turnSave(){
 function subscribeTurn(){
   if(!sbc || !CLOUD) return;
   sbc.channel('turnstate').on('postgres_changes', {event:'*', schema:'public', table:'turn_state'}, p=>{
-    if(p.new){ TURN = Object.assign({phase:"upkeep", ledger:[], notes:""}, p.new.data||{}, {phase:p.new.phase||"upkeep"});
-      if($('chamberBk').classList.contains('show')) renderChamber(false); }
+    if(p.new){
+      const newPhase = p.new.phase || "upkeep";
+      const phaseChanged = newPhase !== TURN.phase;
+      TURN = Object.assign({phase:"upkeep", ledger:[], notes:""}, p.new.data||{}, {phase:newPhase});
+      if($('chamberBk').classList.contains('show')){
+        if(phaseChanged) renderChamber(false); else renderLedger();
+      }
+    }
   }).subscribe();
 }
 function ledgerAdd(text, tag){
@@ -1780,7 +1786,9 @@ function renderChamber(resetScroll=true){
       $('upRP').value = v; toast(`Rolled ${T.diceStr}: ${v} RP`);
     };
     $('upRPW').onclick = ()=>{ const v = Number($('upRP').value||0);
-      writeCell("'Turn Tracker'!C4", v, "Resource Points").then(ok=>{ if(ok) ledgerAdd(`RP set to ${v}`, "Upkeep"); }); };
+      writeCell("'Turn Tracker'!C4", v, "Resource Points").then(ok=>{ if(ok){
+        if(SHEET.turn && SHEET.turn.acc) SHEET.turn.acc.RP = v;
+        ledgerAdd(`RP set to ${v}`, "Upkeep"); } }); };
     $('upConW').onclick = ()=>writeCell("'Turn Tracker'!E65", Number($('upConMod').value||0), "Consumption modifier");
     {
       const foodHave = (K.commodities||[]).find(c=>c.name==="Food");
@@ -1798,13 +1806,17 @@ function renderChamber(resetScroll=true){
         $('upConNote').textContent = "Settle the shortfall one way or the other — both write the tracker's own tally, where the turn commit reads them.";
         $('upPayRP').onclick = async ()=>{
           const nv = rpHave - rpCost;
-          if(await writeCell("'Turn Tracker'!C4", nv, "Resource Points"))
+          if(await writeCell("'Turn Tracker'!C4", nv, "Resource Points")){
+            if(SHEET.turn && SHEET.turn.acc) SHEET.turn.acc.RP = nv;
             ledgerAdd(`Paid ${rpCost} RP to cover ${short} Food consumption (RP → ${nv})`, "Upkeep");
+          }
         };
         const applyUnrest = async v=>{
           const cur = (T.acc && T.acc.Unrest) || 0, nv = cur + v;
-          if(await writeCell("'Turn Tracker'!K2", nv, "Unrest tally"))
+          if(await writeCell("'Turn Tracker'!K2", nv, "Unrest tally")){
+            if(SHEET.turn && SHEET.turn.acc) SHEET.turn.acc.Unrest = nv;
             ledgerAdd(`Took ${v} Unrest for unpaid consumption (tally → ${nv})`, "Upkeep");
+          }
         };
         $('upTakeUnrest').onclick = ()=>applyUnrest(1 + Math.floor(Math.random()*4));
         $('upUnrestManW').onclick = ()=>{ const v = Number($('upUnrestMan').value||0); if(v>0) applyUnrest(v); };
@@ -1859,7 +1871,8 @@ function renderChamber(resetScroll=true){
         const nv = (Number(d.querySelector('.sv').textContent)||0) + delta;
         d.querySelector('.sv').textContent = nv;
         const ok = await writeCell(`'Turn Tracker'!${cell}`, nv, name);
-        if(ok) ledgerAdd(`${name} ${delta>0?"+":""}${delta} (→ ${nv})`, "Tally");
+        if(ok){ if(SHEET.turn && SHEET.turn.acc) SHEET.turn.acc[name] = nv;
+          ledgerAdd(`${name} ${delta>0?"+":""}${delta} (→ ${nv})`, "Tally"); }
       };
       minus.onclick = ()=>bump(-1); plus.onclick = ()=>bump(+1);
       g.appendChild(d);
