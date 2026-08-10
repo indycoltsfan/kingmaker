@@ -337,7 +337,7 @@ svg.showCoords .coordLbl{opacity:.55}
     <div class="title">The Stolen Lands<span class="tail"> <span class="amp">&</span> the Kingdom Thereof</span></div>
   </div>
   <div class="sub">A Chronicle of Exploration &amp; Rule</div>
-  <div id="draftTag">v0.16.3 · cal v5</div>
+  <div id="draftTag">v0.16.4 · cal v5</div>
   <div class="spacer"></div>
   <button class="hbtn" id="authBtn">Sign in</button>
   <button class="hbtn" id="turnBtn" style="display:none">Turn</button>
@@ -1817,6 +1817,10 @@ function renderChamber(resetScroll=true){
     const leaders = (K.leaders||[]).map(l=>l.name);
     const setts = Object.keys(SHEET.settlements||{});
     B.innerHTML = `
+      <div id="upMismatch" style="display:none;border:1px solid #6e352c;border-radius:5px;background:rgba(110,53,44,.15);padding:12px 14px;margin-bottom:14px">
+        <div style="font-size:13.5px;color:#c98a7f;margin-bottom:8px" id="upMisTxt"></div>
+        <button class="rollbtn" id="upMisFix">Restore tally from last committed stores</button>
+      </div>
       <h3>Step 1 · Leadership</h3>
       <div class="chrow"><label>Active leader</label>
         <select id="upLeader">${leaders.map(n=>`<option ${n===T.activeLeader?"selected":""}>${escapeHtml(n)}</option>`).join("")}</select>
@@ -1865,8 +1869,31 @@ function renderChamber(resetScroll=true){
         ledgerAdd(`RP set to ${v}`, "Upkeep"); } }); };
     $('upConW').onclick = ()=>writeCell("'Turn Tracker'!E65", Number($('upConMod').value||0), "Consumption modifier");
     {
-      const foodHave = (K.commodities||[]).find(c=>c.name==="Food");
-      const have = foodHave ? (foodHave.cur||0) : 0;
+      /* sanity check: live tally vs last committed stores (running totals must match at turn start) */
+      const acc3 = T.acc || {}, diffs = [];
+      const pairs = [];
+      for(const c of (K.commodities||[])){
+        const live = acc3[c.name] ?? 0;
+        if(c.cur != null && live !== c.cur){ diffs.push(`${c.name} ${live} vs ${c.cur}`);
+          pairs.push([`'Turn Tracker'!${(TALLY_CELLS.find(x=>x[0]===c.name)||[])[1]}`, c.cur, c.name, c.cur]); }
+      }
+      const kUnrest = K.unrest ?? null, liveU = acc3.Unrest ?? 0;
+      if(kUnrest != null && liveU !== kUnrest){ diffs.push(`Unrest ${liveU} vs ${kUnrest}`);
+        pairs.push(["'Turn Tracker'!K2", kUnrest, "Unrest", kUnrest]); }
+      if(diffs.length && !TURN.ledger.length){
+        $('upMismatch').style.display = "";
+        $('upMisTxt').textContent = `The tally doesn't match the kingdom's last committed totals (${diffs.join(", ")}). If this is a fresh turn, restore before acting — a swept or restored sheet is usually the cause.`;
+        $('upMisFix').onclick = async ()=>{
+          const ok = await sheetsBatch(pairs.map(p=>[p[0], p[1]]), "Tally restored from committed stores");
+          if(ok){ for(const p of pairs){ if(SHEET.turn && SHEET.turn.acc) SHEET.turn.acc[p[2]] = p[3]; }
+            ledgerAdd("Tally restored to last committed totals", "Upkeep");
+            renderChamber(false); }
+        };
+      }
+    }
+    {
+      const acc2 = T.acc || {};
+      const have = acc2.Food ?? 0;
       const due = T.consumptionDue ?? 0;
       const short = Math.max(0, due - have);
       $('upFoodHave').textContent = `${have} Food on hand`;
