@@ -350,7 +350,7 @@ svg.showCoords .coordLbl{opacity:.55}
     <div class="title">The Stolen Lands<span class="tail"> <span class="amp">&</span> the Kingdom Thereof</span></div>
   </div>
   <div class="sub">A Chronicle of Exploration &amp; Rule</div>
-  <div id="draftTag">v0.17.1 · cal v5</div>
+  <div id="draftTag">v0.17.2 · cal v5</div>
   <div class="spacer"></div>
   <button class="hbtn" id="authBtn">Sign in</button>
   <button class="hbtn" id="turnBtn" style="display:none">Turn</button>
@@ -2082,8 +2082,16 @@ function renderChamber(resetScroll=true){
   else if(TURN.phase==="construction"){
     const C = SHEET.construction || {};
     const chk = String(C.checkText||"").match(/^(.+?)\s+DC\s+(\d+)/);
-    const chkSkill = chk ? chk[1].trim() : null, chkDC = chk ? Number(chk[2]) : ((K&&K.controlDC)??14);
+    let chkSkill = chk ? chk[1].trim() : null, reqProf = null;
+    const chkDC = chk ? Number(chk[2]) : ((K&&K.controlDC)??14);
+    if(chkSkill){
+      const pm = chkSkill.match(/\((Trained|Expert|Master|Legendary)\)\s*$/i);
+      if(pm){ reqProf = pm[1]; chkSkill = chkSkill.replace(/\s*\([^)]*\)\s*$/, "").trim(); }
+    }
     const mySkill = chkSkill && K && (K.skills||[]).find(x=>x.name===chkSkill);
+    const PROF_RANK = {null:0, "T":1, "E":2, "M":3, "L":4};
+    const REQ_RANK = {"Trained":1, "Expert":2, "Master":3, "Legendary":4};
+    const meetsProf = !reqProf || (mySkill && (PROF_RANK[mySkill.prof]||0) >= REQ_RANK[reqProf]);
     const engSkill = K && (K.skills||[]).find(x=>x.name==="Engineering");
     const setts = Object.keys(SHEET.settlements||{});
     const opts = C.options||[];
@@ -2098,6 +2106,7 @@ function renderChamber(resetScroll=true){
         <div>
           ${C.checkText?`<span class="checkline">Check <b>${escapeHtml(C.checkText)}</b>${mySkill?` <button class="ckroll" id="conRoll" title="Roll this check">🎲</button>`:""}</span>`:""}
           ${mySkill?`<span class="checkline">Your ${escapeHtml(chkSkill)} <b>+${mySkill.total}</b></span>`:""}
+          ${reqProf?`<span class="checkline"${meetsProf?"":' style="border-color:#6e352c;color:#c98a7f"'}>Requires <b${meetsProf?"":' style="color:#c98a7f"'}>${reqProf}</b>${meetsProf?"":` — kingdom is ${mySkill&&mySkill.prof?({T:"Trained",E:"Expert",M:"Master",L:"Legendary"})[mySkill.prof]:"Untrained"}`}</span>`:""}
           ${C.cost?`<span class="checkline">Cost <b>${escapeHtml(C.cost)}</b></span>`:""}
           ${C.lots!=null?`<span class="checkline">Lots <b>${C.lots}</b></span>`:""}
           ${C.maxRP!=null?`<span class="checkline">Max RP/turn <b>${C.maxRP}</b></span>`:""}
