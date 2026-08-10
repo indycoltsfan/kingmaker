@@ -350,7 +350,7 @@ svg.showCoords .coordLbl{opacity:.55}
     <div class="title">The Stolen Lands<span class="tail"> <span class="amp">&</span> the Kingdom Thereof</span></div>
   </div>
   <div class="sub">A Chronicle of Exploration &amp; Rule</div>
-  <div id="draftTag">v0.17.2 · cal v5</div>
+  <div id="draftTag">v0.17.4 · cal v5</div>
   <div class="spacer"></div>
   <button class="hbtn" id="authBtn">Sign in</button>
   <button class="hbtn" id="turnBtn" style="display:none">Turn</button>
@@ -1696,6 +1696,7 @@ const PHASES = [
   {id:"commit",   name:"Commit"}
 ];
 let TURN = {phase:"upkeep", ledger:[], notes:""};
+let CON_STATE = {con:null, dem:null};   // last recorded outcome per construction card — survives re-renders
 let turnDirty = null, openAct = null;
 const canRunTurn = ()=> !CLOUD || ROLE==="gm" || ROLE==="editor";
 
@@ -2086,7 +2087,8 @@ function renderChamber(resetScroll=true){
     const chkDC = chk ? Number(chk[2]) : ((K&&K.controlDC)??14);
     if(chkSkill){
       const pm = chkSkill.match(/\((Trained|Expert|Master|Legendary)\)\s*$/i);
-      if(pm){ reqProf = pm[1]; chkSkill = chkSkill.replace(/\s*\([^)]*\)\s*$/, "").trim(); }
+      if(pm){ reqProf = pm[1].charAt(0).toUpperCase() + pm[1].slice(1).toLowerCase();
+        chkSkill = chkSkill.replace(/\s*\([^)]*\)\s*$/, "").trim(); }
     }
     const mySkill = chkSkill && K && (K.skills||[]).find(x=>x.name===chkSkill);
     const PROF_RANK = {null:0, "T":1, "E":2, "M":3, "L":4};
@@ -2106,7 +2108,7 @@ function renderChamber(resetScroll=true){
         <div>
           ${C.checkText?`<span class="checkline">Check <b>${escapeHtml(C.checkText)}</b>${mySkill?` <button class="ckroll" id="conRoll" title="Roll this check">🎲</button>`:""}</span>`:""}
           ${mySkill?`<span class="checkline">Your ${escapeHtml(chkSkill)} <b>+${mySkill.total}</b></span>`:""}
-          ${reqProf?`<span class="checkline"${meetsProf?"":' style="border-color:#6e352c;color:#c98a7f"'}>Requires <b${meetsProf?"":' style="color:#c98a7f"'}>${reqProf}</b>${meetsProf?"":` — kingdom is ${mySkill&&mySkill.prof?({T:"Trained",E:"Expert",M:"Master",L:"Legendary"})[mySkill.prof]:"Untrained"}`}</span>`:""}
+          ${reqProf?`<span class="checkline" style="${meetsProf?"border-color:#3f5c44;color:#9fc79b":"border-color:#6e352c;color:#c98a7f"}">Requires <b style="color:${meetsProf?"#9fc79b":"#c98a7f"}">${reqProf}</b>${meetsProf?" ✓":` — kingdom is ${mySkill&&mySkill.prof?({T:"Trained",E:"Expert",M:"Master",L:"Legendary"})[mySkill.prof]:"Untrained"}`}</span>`:""}
           ${C.cost?`<span class="checkline">Cost <b>${escapeHtml(C.cost)}</b></span>`:""}
           ${C.lots!=null?`<span class="checkline">Lots <b>${C.lots}</b></span>`:""}
           ${C.maxRP!=null?`<span class="checkline">Max RP/turn <b>${C.maxRP}</b></span>`:""}
@@ -2160,20 +2162,28 @@ function renderChamber(resetScroll=true){
       <h3>Tally</h3><div class="stepgrid" id="conTally"></div>`;
     B.innerHTML = html;
     renderTally($('conTally'));
+    const paintOutcome = (who)=>{
+      const st = CON_STATE[who==="dem"?"dem":"con"]; if(!st) return;
+      const cards = B.querySelectorAll('.actcard');
+      const card = who==="dem" ? cards[cards.length-1] : cards[0];
+      if(!card) return;
+      let rb = card.querySelector('.actresult');
+      if(!rb){ rb = document.createElement('div'); card.querySelector('.outrow').insertAdjacentElement('afterend', rb); }
+      const cls = st.outcome==="Critical Success"?"cs":st.outcome==="Success"?"s":st.outcome==="Failure"?"f":"cf";
+      rb.className = "actresult "+cls;
+      rb.innerHTML = `<div class="rdeg">${st.outcome.toUpperCase()}</div>${st.detail?`<div class="rmath">${escapeHtml(st.detail)}</div>`:""}`;
+      if(who!=="dem" && $('conFx')) $('conFx').style.display = "";
+    };
     const conRecord = (outcome, detail, who)=>{
       const note = $('conNote') ? $('conNote').value.trim() : "";
       const tag = who==="dem" ? "Demolish" : `Build Structure: ${C.selected||"?"}`;
       ledgerAdd(`${outcome}${detail?` (${detail})`:""}${note?` — ${note}`:""}`, tag);
-      const card = who==="dem" ? B.querySelectorAll('.actcard')[1] : B.querySelector('.actcard');
-      if(card){
-        let rb = card.querySelector('.actresult');
-        if(!rb){ rb = document.createElement('div'); card.querySelector('.outrow').insertAdjacentElement('afterend', rb); }
-        const cls = outcome==="Critical Success"?"cs":outcome==="Success"?"s":outcome==="Failure"?"f":"cf";
-        rb.className = "actresult "+cls;
-        rb.innerHTML = `<div class="rdeg">${outcome.toUpperCase()}</div>${detail?`<div class="rmath">${escapeHtml(detail)}</div>`:""}`;
-      }
-      if(who!=="dem" && $('conFx')) $('conFx').style.display = "";
+      CON_STATE[who==="dem"?"dem":"con"] = {outcome, detail, structure: C.selected};
+      paintOutcome(who);
     };
+    // restore ephemeral state after any re-render (the screen self-refreshes on ledger adopts)
+    if(CON_STATE.con && CON_STATE.con.structure !== C.selected) CON_STATE.con = null;
+    paintOutcome("con"); paintOutcome("dem");
     if(window.PENDING_PICK && C.selected === window.PENDING_PICK){
       window.PENDING_PICK = null; window.PICK_TRIES = 0;
     } else if(window.PENDING_PICK){
@@ -2196,6 +2206,7 @@ function renderChamber(resetScroll=true){
       writeCell("'Turn Tracker'!C428", val, "Structure pick").then(ok=>{
         if(ok){
           window.PENDING_PICK = val; window.PICK_TRIES = 0;
+          CON_STATE.con = null;
           toast("The sheet is computing "+val+"'s numbers — a few seconds.");
           renderChamber(false);
         }});
@@ -2301,7 +2312,8 @@ function renderChamber(resetScroll=true){
         ledgerAdd("Per-turn circumstance bonuses cleared", "Commit"); }
     };
     $('cmDone').onclick = ()=>{ if(confirm("Clear the ledger and reset the chamber for the next turn?")){
-      TURN = {phase:"upkeep", ledger:[], notes:""}; turnSave(); refreshSheetLive(true); renderChamber(); }};
+      TURN = {phase:"upkeep", ledger:[], notes:""}; CON_STATE = {con:null, dem:null};
+      turnSave(); refreshSheetLive(true); renderChamber(); }};
   }
   renderLedger();
   if(resetScroll) $('chBody').scrollTop = 0;
