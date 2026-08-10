@@ -337,7 +337,7 @@ svg.showCoords .coordLbl{opacity:.55}
     <div class="title">The Stolen Lands<span class="tail"> <span class="amp">&</span> the Kingdom Thereof</span></div>
   </div>
   <div class="sub">A Chronicle of Exploration &amp; Rule</div>
-  <div id="draftTag">v0.16.2 · cal v5</div>
+  <div id="draftTag">v0.16.3 · cal v5</div>
   <div class="spacer"></div>
   <button class="hbtn" id="authBtn">Sign in</button>
   <button class="hbtn" id="turnBtn" style="display:none">Turn</button>
@@ -1749,7 +1749,7 @@ function renderTally(container){
     d.innerHTML = `<span class="sn">${name}</span><button>−</button><span class="sv">${acc[name]??0}</span><button>+</button>`;
     const [minus, plus] = d.querySelectorAll('button');
     const bump = async delta=>{
-      const nv = (Number(d.querySelector('.sv').textContent)||0) + delta;
+      const nv = tallyClamp(name, (Number(d.querySelector('.sv').textContent)||0) + delta);
       d.querySelector('.sv').textContent = nv;
       const ok = await writeCell(`'Turn Tracker'!${cell}`, nv, name);
       if(ok){ if(SHEET.turn && SHEET.turn.acc) SHEET.turn.acc[name] = nv;
@@ -1759,10 +1759,21 @@ function renderTally(container){
     container.appendChild(d);
   }
 }
+function tallyClamp(name, nv){
+  const COMMODITIES = ["Food","Lumber","Luxuries","Ore","Stone"];
+  if(nv < 0 && (name==="Unrest" || COMMODITIES.includes(name))){
+    toast(`${name} can't go below 0 — clamped.`); return 0;
+  }
+  if(COMMODITIES.includes(name) && SHEET.court){
+    const c = (SHEET.court.commodities||[]).find(x=>x.name===name);
+    if(c && c.max && nv > c.max){ toast(`${name} capped at storage limit ${c.max} — excess is lost.`); return c.max; }
+  }
+  return nv;
+}
 function applyTallyDelta(name, delta){
   const pair = TALLY_CELLS.find(x=>x[0]===name); if(!pair) return Promise.resolve(false);
   const cur = (SHEET.turn && SHEET.turn.acc && SHEET.turn.acc[name]) || 0;
-  const nv = cur + delta;
+  const nv = tallyClamp(name, cur + delta);
   return writeCell(`'Turn Tracker'!${pair[1]}`, nv, name).then(ok=>{
     if(ok && SHEET.turn && SHEET.turn.acc) SHEET.turn.acc[name] = nv;
     return ok ? nv : false;
