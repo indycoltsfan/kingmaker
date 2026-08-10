@@ -350,7 +350,7 @@ svg.showCoords .coordLbl{opacity:.55}
     <div class="title">The Stolen Lands<span class="tail"> <span class="amp">&</span> the Kingdom Thereof</span></div>
   </div>
   <div class="sub">A Chronicle of Exploration &amp; Rule</div>
-  <div id="draftTag">v0.17 · cal v5</div>
+  <div id="draftTag">v0.17.1 · cal v5</div>
   <div class="spacer"></div>
   <button class="hbtn" id="authBtn">Sign in</button>
   <button class="hbtn" id="turnBtn" style="display:none">Turn</button>
@@ -1063,7 +1063,7 @@ function adoptLedger(parsed, when){
   if(typeof chronTab !== "undefined" && chronTab==="annals" && $('chronDrawer').classList.contains('open')) listAnnals();
   if($('chamberBk').classList.contains('show') && typeof TURN !== "undefined" && (TURN.phase==="upkeep" && !TURN.ledger.length || TURN.phase==="construction")){
     const ae = document.activeElement;
-    if(!(ae && $('chamber').contains(ae) && (ae.tagName==="INPUT" || ae.tagName==="SELECT" || ae.tagName==="TEXTAREA")))
+    if(!(ae && $('chamber').contains(ae) && (ae.tagName==="INPUT" || ae.tagName==="TEXTAREA")))
       renderChamber(false);
   }
 }
@@ -2165,10 +2165,31 @@ function renderChamber(resetScroll=true){
       }
       if(who!=="dem" && $('conFx')) $('conFx').style.display = "";
     };
+    if(window.PENDING_PICK && C.selected === window.PENDING_PICK){
+      window.PENDING_PICK = null; window.PICK_TRIES = 0;
+    } else if(window.PENDING_PICK){
+      const note = document.createElement('div');
+      note.className = "chnote";
+      note.innerHTML = `<span style="color:var(--brass-bright)">Computing ${escapeHtml(window.PENDING_PICK)}…</span> the card below still shows ${escapeHtml(C.selected||"the previous structure")} until the sheet answers.`;
+      const pk = $('conPick');
+      if(pk) pk.closest('.chrow').insertAdjacentElement('afterend', note);
+      window.PICK_TRIES = (window.PICK_TRIES||0);
+      if(window.PICK_TRIES < 4){
+        window.PICK_TRIES++;
+        clearTimeout(window._pickRetry);
+        window._pickRetry = setTimeout(()=>refreshSheetLive(true), 5000);
+      }
+    }
     const pick = $('conPick');
     if(pick) pick.onchange = e=>{
-      writeCell("'Turn Tracker'!C428", e.target.value, "Structure pick").then(ok=>{
-        if(ok){ toast("The sheet is computing "+e.target.value+"'s numbers — a few seconds."); }});
+      const val = e.target.value;
+      e.target.blur();
+      writeCell("'Turn Tracker'!C428", val, "Structure pick").then(ok=>{
+        if(ok){
+          window.PENDING_PICK = val; window.PICK_TRIES = 0;
+          toast("The sheet is computing "+val+"'s numbers — a few seconds.");
+          renderChamber(false);
+        }});
     };
     const cr = $('conRoll');
     if(cr) cr.onclick = ()=>{
