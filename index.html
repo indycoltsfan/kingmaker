@@ -167,6 +167,13 @@ svg.showCoords .coordLbl{opacity:.55}
   border-radius:14px;font-size:13px;margin:0 6px 6px 0}
 .checkline b{font-family:var(--mono);color:var(--brass-bright)}
 .outrow{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.actresult{margin-top:12px;padding:11px 15px;border-radius:4px;border:1px solid var(--edge);border-left-width:4px;background:var(--ink)}
+.actresult .rdeg{font-family:var(--serif);font-size:18px;font-weight:700;letter-spacing:.03em}
+.actresult .rmath{font-family:var(--mono);font-size:12.5px;color:var(--parch-dim);margin-top:3px}
+.actresult.cs{border-left-color:#9fc79b}.actresult.cs .rdeg{color:#9fc79b}
+.actresult.s{border-left-color:var(--brass)}.actresult.s .rdeg{color:var(--brass-bright)}
+.actresult.f{border-left-color:#c9a97f}.actresult.f .rdeg{color:#c9a97f}
+.actresult.cf{border-left-color:#c96f5a}.actresult.cf .rdeg{color:#c98a7f}
 .outbtn{padding:7px 11px;border:1px solid var(--edge);border-radius:3px;font-size:12.5px;color:var(--parch-dim);background:var(--ink)}
 .outbtn:hover{border-color:var(--brass)}
 .outbtn.cs{color:#9fc79b} .outbtn.f{color:#c9a97f} .outbtn.cf{color:#c98a7f}
@@ -337,7 +344,7 @@ svg.showCoords .coordLbl{opacity:.55}
     <div class="title">The Stolen Lands<span class="tail"> <span class="amp">&</span> the Kingdom Thereof</span></div>
   </div>
   <div class="sub">A Chronicle of Exploration &amp; Rule</div>
-  <div id="draftTag">v0.16.4 · cal v5</div>
+  <div id="draftTag">v0.16.5 · cal v5</div>
   <div class="spacer"></div>
   <button class="hbtn" id="authBtn">Sign in</button>
   <button class="hbtn" id="turnBtn" style="display:none">Turn</button>
@@ -1981,6 +1988,15 @@ function renderChamber(resetScroll=true){
       const note = $('actNote') ? $('actNote').value.trim() : "";
       ledgerAdd(`${outcome}${detail?` (${detail})`:""}${note?` — ${note}`:""}`, openAct);
       toast(`${openAct}: ${outcome} recorded.`);
+      const card = document.querySelector('.actcard');
+      if(card){
+        let rb = card.querySelector('.actresult');
+        if(!rb){ rb = document.createElement('div');
+          card.querySelector('.outrow').insertAdjacentElement('afterend', rb); }
+        const cls = outcome==="Critical Success"?"cs":outcome==="Success"?"s":outcome==="Failure"?"f":"cf";
+        rb.className = "actresult "+cls;
+        rb.innerHTML = `<div class="rdeg">${outcome.toUpperCase()}</div>${detail?`<div class="rmath">${escapeHtml(detail)}</div>`:""}`;
+      }
       const fx = $('fxRow'); if(fx) fx.style.display = "";
       const good = outcome==="Success" || outcome==="Critical Success";
       const base = openAct.replace(/\s*\(.*$/, "");
