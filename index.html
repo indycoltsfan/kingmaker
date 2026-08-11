@@ -364,7 +364,7 @@ svg.showCoords .coordLbl{opacity:.55}
     <div class="title">The Stolen Lands<span class="tail"> <span class="amp">&</span> the Kingdom Thereof</span></div>
   </div>
   <div class="sub">A Chronicle of Exploration &amp; Rule</div>
-  <div id="draftTag">v0.18.2 · cal v5</div>
+  <div id="draftTag">v0.18.3 · cal v5</div>
   <div class="spacer"></div>
   <button class="hbtn" id="authBtn">Sign in</button>
   <button class="hbtn" id="turnBtn" style="display:none">Turn</button>
@@ -1024,6 +1024,26 @@ function parseWorkbook(wb){
         structure: String(XC(tt,'D'+r))||null, traits: String(XC(tt,'F'+r))||null,
         maxRP: TN('G'+r), spent: TN('H'+r), required: String(XC(tt,'I'+r))||null}))
     };
+    const cprose = rows => { const o=[]; for(const r of rows){ const v=String(XC(tt,'C'+r)||"").trim(); if(v) o.push(v); } return o; };
+    out.rules = {
+      upkeep: { intro: cprose([20]), steps: [
+        {title:"Step 1 · Leadership", core:cprose([23,38]), detail:cprose([26,27,28,29,30])},
+        {title:"Step 2 · Adjust Unrest", core:cprose([41,42]), detail:[]},
+        {title:"Step 3 · Resource Collection", core:cprose([48,49,50,55]), detail:cprose([47,54])},
+        {title:"Step 4 · Pay Consumption", core:cprose([61,62,63]), detail:[]} ]},
+      activity: { intro: cprose([68]), steps: [
+        {title:"The Activity Phase", core:cprose([70,73]), detail:[]} ]},
+      construction: { intro: cprose([420]), steps: [
+        {title:"Build Structure", core:cprose([425]), detail:cprose([436,437])},
+        {title:"Demolish", core:cprose([441]), detail:cprose([442])},
+        {title:"Ongoing Construction", core:cprose([450,453]), detail:[]} ]},
+      event: { intro: cprose([538]), steps: [
+        {title:"Step 1 · Roll for a Kingdom Event", core:cprose([541,546]), detail:[]},
+        {title:"Step 3 · Apply Kingdom XP", core:cprose([550]), detail:[]},
+        {title:"Level Up", core:cprose([581]), detail:[]} ]},
+      commit: { intro: cprose([584]), steps: [] }
+    };
+    if(!out.rules.upkeep.intro.length && SHEET.rules) out.rules = SHEET.rules;
     const hs = wb.Sheets['History'];
     if(hs){
       for(let r=1;r<=12;r++){
