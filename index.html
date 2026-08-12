@@ -364,7 +364,7 @@ svg.showCoords .coordLbl{opacity:.55}
     <div class="title">The Stolen Lands<span class="tail"> <span class="amp">&</span> the Kingdom Thereof</span></div>
   </div>
   <div class="sub">A Chronicle of Exploration &amp; Rule</div>
-  <div id="draftTag">v0.19 · cal v5</div>
+  <div id="draftTag">v0.20 · cal v5</div>
   <div class="spacer"></div>
   <button class="hbtn" id="authBtn">Sign in</button>
   <button class="hbtn" id="turnBtn" style="display:none">Turn</button>
@@ -1071,7 +1071,8 @@ function parseWorkbook(wb){
       for(let r=1; r<=600; r++){
         if(String(AX('A'+r)||"").trim() !== 'Army Name') continue;
         const army = {
-          name: AS('B'+r),
+          anchor: r,
+          name: AS('A'+(r+1)),
           level: ANum('A'+(r+5)), type: AS('B'+(r+5)), scouting: ANum('C'+(r+5)), consumption: ANum('D'+(r+5)),
           hpMax: ANum('I'+(r+2)), hpCur: ANum('J'+(r+2)), rout: ANum('K'+(r+2)),
           ac: ANum('F'+(r+6)), maneuver: ANum('G'+(r+6)), morale: ANum('H'+(r+6)),
@@ -1099,6 +1100,21 @@ function parseWorkbook(wb){
       }
     }
     if(!out.armies) out.armies = [];
+    out.armyOpts = { types: [], tactics: [] };
+    if(armWS){
+      const AXo = c => { const cell = armWS[c]; return cell ? cell.v : null; };
+      for(let r=6; r<=33; r++){
+        const v = AXo('T'+r);
+        if(v!=null && v!=="" && String(v)!=="None") out.armyOpts.tactics.push(String(v).trim());
+      }
+    }
+    const tbWS = wb.Sheets['Tables'];
+    if(tbWS){
+      for(let r=4; r<=14; r++){
+        const cell = tbWS['AQ'+r]; const v = cell ? cell.v : null;
+        if(v!=null && v!=="") out.armyOpts.types.push(String(v).trim());
+      }
+    }
     const hs = wb.Sheets['History'];
     if(hs){
       for(let r=1;r<=12;r++){
@@ -1762,6 +1778,19 @@ function openCourt(){
   const armies = SHEET.armies || [];
   $('courtMusterSec').style.display = armies.length ? "" : "none";
   if(armies.length){
+    window.armyWrite = async (idx, cell, value, label, mutate)=>{
+      const ar = (SHEET.armies||[])[idx]; if(!ar || !ar.anchor) return;
+      const ok = await writeCell(`Armies!${cell}`, value, label);
+      if(ok){ try{ mutate && mutate(ar); }catch(e){}
+        openCourt();
+        setTimeout(()=>refreshSheetLive(true), 2500);
+      }
+    };
+    window.armyCondToggle = (idx, row, name, on)=>{
+      armyWrite(idx, `Q${row}`, on ? "TRUE" : "FALSE", `${name} ${on?"applied":"cleared"}`,
+        ar=>{ if(on){ if(!ar.conditions.includes(name)) ar.conditions.push(name); }
+              else ar.conditions = ar.conditions.filter(c=>c!==name); });
+    };
     $('courtMuster').innerHTML = armies.map(ar=>{
       const nm = escapeHtml(ar.name || ar.type || "Unnamed Army");
       const chips = [];
@@ -1785,13 +1814,40 @@ function openCourt(){
       const tac = (ar.tactics||[]).map(t=>escapeHtml(t.name||t.desc)).filter(Boolean);
       const utac = (ar.uniqueTactics||[]).map(t=>escapeHtml(t.name||t.desc)).filter(Boolean);
       const cond = (ar.conditions||[]).map(c=>`<span class="cchip" style="border-color:#8a6d3b;color:#d9b36c">${escapeHtml(c)}</span>`).join(" ");
+      const idx = armies.indexOf(ar);
+      const canEdit = (ROLE==="editor"||ROLE==="gm") && CLOUD;
+      const R = ar.anchor || 0;
+      const ALLCOND = ["Concealed","Defeated","Destroyed","Efficient","Engaged","Fortified","Lost","Mired","Distant","Outflanked","Pinned","Routed","Shaken","Weary"];
+      const condRow = n => R + 2 + ALLCOND.indexOf(n);
+      const gearSel = (cellCol, cur, lbl) => `<label style="font-size:11px">${lbl} <select onchange="armyWrite(${idx},'${cellCol}${R+6}',this.value,'${lbl} gear',a=>{})">${["+0","+1","+2","+3"].map(o=>`<option ${cur===parseInt(o)?"selected":""}>${o}</option>`).join("")}</select></label>`;
+      const manage = canEdit ? `<details style="margin-top:8px"><summary style="cursor:pointer;font-size:11.5px;color:var(--brass-bright);letter-spacing:.08em">⚙ MANAGE</summary>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-top:8px;font-size:12px">
+          <label style="font-size:11px">Name <input style="width:130px" value="${escapeHtml(ar.name||"")}" onchange="armyWrite(${idx},'A${R+1}',this.value,'Army renamed',a=>{a.name=this.value})"></label>
+          <label style="font-size:11px">Type <select onchange="armyWrite(${idx},'B${R+5}',this.value,'Army type',a=>{a.type=this.value})">${((SHEET.armyOpts&&SHEET.armyOpts.types)||["Infantry"]).map(o=>`<option ${ar.type===o?"selected":""}>${escapeHtml(o)}</option>`).join("")}</select></label>
+          <label style="font-size:11px">HP <input type="number" min="0" max="${ar.hpMax??99}" style="width:52px" value="${ar.hpCur!=null?ar.hpCur:(ar.hpMax??"")}" onchange="armyWrite(${idx},'J${R+2}',this.value,'Army HP',a=>{a.hpCur=parseFloat(this.value)})"></label>
+          ${gearSel('I', ar.gear&&ar.gear.armor, 'Armor')}
+          ${gearSel('J', ar.gear&&ar.gear.melee, 'Melee')}
+          ${gearSel('K', ar.gear&&ar.gear.ranged, 'Ranged')}
+          <label style="font-size:11px">Potions <select onchange="armyWrite(${idx},'L${R+6}',this.value,'Potions',a=>{a.gear.potions=parseInt(this.value)})">${[0,1,2,3].map(o=>`<option ${(ar.gear&&ar.gear.potions||0)===o?"selected":""}>${o}</option>`).join("")}</select></label>
+          <label style="font-size:11px"><input type="checkbox" ${ar.gear&&ar.gear.addlWeapons?"checked":""} onchange="armyWrite(${idx},'M${R+6}',this.checked?'TRUE':'FALSE','Additional weapons',a=>{a.gear.addlWeapons=this.checked})"> Addl weapons</label>
+        </div>
+        <div style="margin-top:8px;font-size:12px"><span style="font-size:11px;color:var(--parch-faint)">Tactics:</span> ${[0,1,2,3,4,5].map(ti=>{
+          const cur = (ar.tactics[ti]&&ar.tactics[ti].name)||"None";
+          return `<select style="margin:2px" onchange="armyWrite(${idx},'A${R+10+ti}',this.value,'Tactic slot ${ti+1}',a=>{})">${["None"].concat((SHEET.armyOpts&&SHEET.armyOpts.tactics)||[]).map(o=>`<option ${cur===o?"selected":""}>${escapeHtml(o)}</option>`).join("")}</select>`;
+        }).join("")}</div>
+        <div style="margin-top:8px"><span style="font-size:11px;color:var(--parch-faint)">Conditions:</span> ${ALLCOND.map(cn=>{
+          const on = (ar.conditions||[]).includes(cn);
+          return `<span class="cchip" style="cursor:pointer;margin:2px;${on?"border-color:#8a6d3b;color:#d9b36c":"opacity:.55"}" onclick="armyCondToggle(${idx},${condRow(cn)},'${cn}',${on?"false":"true"})">${cn}</span>`;
+        }).join(" ")}</div>
+      </details>` : "";
       return `<div class="actcard" style="margin-bottom:10px"><h4 style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">${nm}${chips.map(c=>`<span class="cchip">${c}</span>`).join("")}</h4>
         <div class="meta" style="margin-top:4px">${stat.join(" · ")}${hp?` · ${hp}`:""}</div>
         ${atk?`<div class="meta">Attacks: ${atk}</div>`:""}
         ${gearBits.length?`<div class="meta">Gear: ${gearBits.join(" · ")}</div>`:""}
         ${ar.tacticsLabel||tac.length?`<div class="meta">${escapeHtml(ar.tacticsLabel||"Tactics")}${tac.length?`: ${tac.join(", ")}`:""}</div>`:""}
         ${utac.length?`<div class="meta">Unique tactics: ${utac.join(", ")}</div>`:""}
-        ${cond?`<div style="margin-top:6px">${cond}</div>`:""}</div>`;
+        ${cond?`<div style="margin-top:6px">${cond}</div>`:""}
+        ${manage}</div>`;
     }).join("");
   }
   const sk = $('courtSkills'); sk.innerHTML="";
