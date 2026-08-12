@@ -210,6 +210,7 @@ svg.showCoords .coordLbl{opacity:.55}
 #rulesBody{padding:16px 20px;overflow-y:auto;font-size:14px;line-height:1.6;color:var(--parch-dim);white-space:pre-wrap}
 #rulesBody .detail{margin-top:14px;padding-top:14px;border-top:1px dashed var(--edge)}
 #rulesFoot{display:flex;justify-content:space-between;align-items:center;padding:12px 20px;border-top:1px solid var(--edge)}
+.actgrid.spent .actbox{opacity:.45}
 .courtlike{position:fixed;inset:0;background:rgba(8,6,4,.72);z-index:150;display:none;align-items:flex-start;justify-content:center;padding:26px 14px;overflow-y:auto}
 .courtlike.show{display:flex}
 .courtpanel{background:var(--panel);border:1px solid var(--edge);border-radius:9px;max-width:860px;width:100%;padding:22px 26px;box-shadow:0 18px 50px rgba(0,0,0,.5)}
@@ -370,7 +371,7 @@ svg.showCoords .coordLbl{opacity:.55}
     <div class="title">The Stolen Lands<span class="tail"> <span class="amp">&</span> the Kingdom Thereof</span></div>
   </div>
   <div class="sub">A Chronicle of Exploration &amp; Rule</div>
-  <div id="draftTag">v0.22.1 · cal v5</div>
+  <div id="draftTag">v0.23 · cal v5</div>
   <div class="spacer"></div>
   <button class="hbtn" id="authBtn">Sign in</button>
   <button class="hbtn" id="turnBtn" style="display:none">Turn</button>
@@ -1250,6 +1251,27 @@ function parseWorkbook(wb){
   }
   return Object.keys(out.settlements).length ? out : null;
 }
+const ACT_UNLIMITED = ["New Leadership"];
+const ACT_KINGDOM_ONCE = ["Quell Unrest","Create a Masterpiece","Collect Taxes","Retrain"];
+function actUse(){
+  if(!TURN.actUse || typeof TURN.actUse !== "object") TURN.actUse = {};
+  const u = TURN.actUse;
+  if(!u.leaders) u.leaders = {};
+  if(!Array.isArray(u.region)) u.region = [];
+  if(!u.civic) u.civic = {};
+  return u;
+}
+function actBase(n){ return String(n||"").replace(/\s*\(.*$/, "").trim(); }
+function leaderBudget(l){ return l.pc ? 3 : 2; }
+function leaderSpent(name){ return (actUse().leaders[name]||[]).length; }
+function leaderDidAct(name, base){ return (actUse().leaders[name]||[]).some(x=>actBase(x)===base); }
+function kingdomDidAct(base){
+  const u = actUse();
+  return Object.values(u.leaders).some(list=>list.some(x=>actBase(x)===base)) || u.region.some(x=>actBase(x)===base);
+}
+function claimHexCap(){ const L = Math.round((SHEET.court&&SHEET.court.level)||1); return L>=9?3:L>=4?2:1; }
+let ACT_OV = false;
+function armOverride(){ ACT_OV = true; toast("Table override armed — the next recorded outcome bypasses the limit and is marked in the ledger."); }
 function adoptLedger(parsed, when){
   setTimeout(()=>{ try{
     if(typeof computeThroneGlow === "function") computeThroneGlow();
@@ -2117,7 +2139,7 @@ function turnSave(){
   clearTimeout(turnDirty);
   turnDirty = setTimeout(async ()=>{
     const {error} = await sbc.from('turn_state').upsert({id:1, phase:TURN.phase,
-      data:{ledger:TURN.ledger, notes:TURN.notes}});
+      data:{ledger:TURN.ledger, notes:TURN.notes, actUse:TURN.actUse||{}}});
     if(error) toast("Turn state didn't sync: "+error.message);
   }, 400);
 }
@@ -2451,9 +2473,14 @@ function renderChamber(resetScroll=true){
     const groups = {};
     for(const a of acts) (groups[a.section]=groups[a.section]||[]).push(a);
     let html = `<div class="chnote">Tap an activity to open its rules and your kingdom's live bonuses. Resolve it at the table, then record the outcome — it lands in the ledger below.</div>`;
+    const AU = actUse();
+    const regionUsed = AU.region.length;
     for(const sec of ["Leadership","Region"]){
       if(!groups[sec]) continue;
-      html += `<h3>${sec} Activities</h3><div class="actgrid">` +
+      const secChip = sec==="Region"
+        ? ` <span class="cchip" style="${regionUsed>=3?"border-color:#8a6d3b;color:#d9b36c":""}">${regionUsed} of 3 slots used</span>${regionUsed>=3?` <a href="#" class="ovlink" style="font-size:11px;color:var(--parch-faint)">table override</a>`:""}`
+        : "";
+      html += `<h3>${sec} Activities${secChip}</h3><div class="actgrid${sec==="Region"&&regionUsed>=3?" spent":""}">` +
         groups[sec].map((a,i)=>`<div class="actbox${openAct===a.name?" open":""}" data-a="${escapeHtml(a.name)}">${escapeHtml(a.name)}</div>`).join("") + `</div>`;
       const open = groups[sec].find(a=>a.name===openAct);
       if(open){
@@ -2462,6 +2489,18 @@ function renderChamber(resetScroll=true){
           <div class="chrow" style="margin:0 0 8px"><label style="min-width:0">DC</label>
             <input type="number" id="actDC" value="${dcDefault}" style="width:70px">
             <span style="font-size:11.5px;color:var(--parch-faint)">Control DC ${dcDefault} unless the GM says otherwise</span></div>
+          ${sec==="Leadership" ? (()=>{
+            const base = actBase(open.name);
+            const unlimited = ACT_UNLIMITED.includes(base);
+            const leaders = ((SHEET.court&&SHEET.court.leaders)||[]).filter(l=>l.name&&!l.vacant);
+            const eligible = leaders.filter(l=>leaderSpent(l.name) < leaderBudget(l) && (unlimited || !leaderDidAct(l.name, base)));
+            const others = leaders.filter(l=>!eligible.includes(l));
+            const opt = l=>`<option value="${escapeHtml(l.name)}">${escapeHtml(l.name)} · ${leaderBudget(l)-leaderSpent(l.name)} action${leaderBudget(l)-leaderSpent(l.name)===1?"":"s"} left</option>`;
+            const ovOpt = l=>`<option value="OV:${escapeHtml(l.name)}">${escapeHtml(l.name)} (override)</option>`;
+            return `<div class="chrow"><label style="min-width:0">Performed by</label>
+              <select id="actWho"><option value="">— choose leader —</option>${eligible.map(opt).join("")}${others.length?`<optgroup label="Table override">${others.map(ovOpt).join("")}</optgroup>`:""}</select>
+              ${kingdomDidAct(base)&&ACT_KINGDOM_ONCE.includes(base)?`<span style="font-size:11.5px;color:#d9b36c">already performed this turn — kingdom-wide once</span>`:""}</div>`;
+          })() : ""}
           <div>${open.checks.map((c,ci)=>`<span class="checkline">${escapeHtml(c.skill)} <b>${c.bonus!=null?(c.bonus>=0?"+":"")+c.bonus:"—"}</b>${c.bonus!=null?` <button class="ckroll" data-ci="${ci}" title="Roll this check">🎲</button>`:""}</span>`).join("")}</div>
           <div class="adesc">${escapeHtml(open.desc)}</div>
           <div class="chrow"><label style="min-width:0">Effect note</label><input id="actNote" style="flex:1" placeholder="e.g. claimed hex W2, +2 Stone"></div>
@@ -2489,11 +2528,45 @@ function renderChamber(resetScroll=true){
     B.innerHTML = html;
     renderTally($('accGrid')); wireStepHeads();
     B.querySelectorAll('.actbox').forEach(x=>x.onclick=()=>{ openAct = (openAct===x.dataset.a)? null : x.dataset.a; renderChamber(false); });
+    B.querySelectorAll('.ovlink').forEach(x=>x.onclick=e=>{ e.preventDefault(); armOverride(); });
     const gc = $('goCon'); if(gc) gc.onclick = e=>{ e.preventDefault(); TURN.phase="construction"; turnSave(); renderChamber(); };
     const recordOutcome = (outcome, detail)=>{
       const note = $('actNote') ? $('actNote').value.trim() : "";
-      ledgerAdd(`${outcome}${detail?` (${detail})`:""}${note?` — ${note}`:""}`, openAct);
-      toast(`${openAct}: ${outcome} recorded.`);
+      const u = actUse();
+      const base = actBase(openAct);
+      const actObj = (SHEET.activities||[]).find(v=>v.name===openAct);
+      const isLead = actObj && actObj.section==="Leadership";
+      const isRegion = actObj && actObj.section==="Region";
+      let actor = null, override = ACT_OV; ACT_OV = false;
+      if(isLead){
+        const whoEl = $('actWho');
+        const who = whoEl ? whoEl.value : "";
+        if(!who){ toast("Choose who performs this activity first."); return; }
+        if(who.startsWith("OV:")){ actor = who.slice(3); override = true; }
+        else actor = who;
+        if(!override && ACT_KINGDOM_ONCE.includes(base) && kingdomDidAct(base)){
+          toast(`${base} may only happen once per Kingdom turn — use a table-override leader pick to overrule.`); return;
+        }
+        (u.leaders[actor] = u.leaders[actor]||[]).push(openAct);
+      }
+      if(isRegion){
+        if(!override && u.region.length >= 3){
+          toast("All 3 Region slots are spent — use the table override link by the section header to overrule."); return;
+        }
+        if(!override && base==="Claim Hex" && u.region.filter(x=>actBase(x)==="Claim Hex").length >= claimHexCap()){
+          toast(`Claim Hex is limited to ${claimHexCap()}/turn at kingdom level ${Math.round((SHEET.court&&SHEET.court.level)||1)} — override to overrule.`); return;
+        }
+        u.region.push(openAct);
+      }
+      turnSave();
+      ledgerAdd(`${actor?actor+" — ":""}${outcome}${detail?` (${detail})`:""}${note?` — ${note}`:""}${override?" [table override]":""}`, openAct);
+      toast(`${openAct}: ${outcome} recorded${actor?` for ${actor}`:""}.`);
+      const whoEl2 = $('actWho');
+      if(whoEl2 && actor){
+        const optEl = Array.from(whoEl2.options).find(o=>o.value===actor||o.value==="OV:"+actor);
+        if(optEl && !ACT_UNLIMITED.includes(base)) optEl.disabled = true;
+        whoEl2.value = "";
+      }
       const card = document.querySelector('.actcard');
       if(card){
         let rb = card.querySelector('.actresult');
@@ -2505,7 +2578,6 @@ function renderChamber(resetScroll=true){
       }
       const fx = $('fxRow'); if(fx) fx.style.display = "";
       const good = outcome==="Success" || outcome==="Critical Success";
-      const base = openAct.replace(/\s*\(.*$/, "");
       if(good && EST_MAP[base]) recordEstablishment(EST_MAP[base][0], EST_MAP[base][1], base);
       if(good && base==="Establish Work Site"){
         setTimeout(()=>{
@@ -2561,7 +2633,8 @@ function renderChamber(resetScroll=true){
     const opts = C.options||[];
     const selOpt = (list, cur, extra)=> (extra?`<option${!cur||cur==="—"?" selected":""}>—</option>`:"") +
       list.map(o=>`<option${o===cur?" selected":""}>${escapeHtml(o)}</option>`).join("");
-    let html = phaseIntroHTML() + `<h3 style="margin-top:4px">${stepHeading("Build Structure")} <span style="letter-spacing:0;text-transform:none;color:var(--parch-faint)">— in ${escapeHtml(T.settlement||"the current settlement")} (set in Upkeep)</span></h3>
+    const civicUsed = (actUse().civic[T.settlement||"the settlement"]||0);
+    let html = phaseIntroHTML() + `<div style="margin:2px 0 8px"><span class="cchip" style="${civicUsed>=1?"border-color:#8a6d3b;color:#d9b36c":""}">Civic activity for ${escapeHtml(T.settlement||"the settlement")}: ${civicUsed>=1?"spent":"available"} (1 per settlement per turn)</span>${civicUsed>=1?` <a href="#" class="ovlink" style="font-size:11px;color:var(--parch-faint)">table override</a>`:""}</div><h3 style="margin-top:4px">${stepHeading("Build Structure")} <span style="letter-spacing:0;text-transform:none;color:var(--parch-faint)">— in ${escapeHtml(T.settlement||"the current settlement")} (set in Upkeep)</span></h3>
       <div class="chrow"><label>Structure</label>
         <select id="conPick" style="min-width:200px">${selOpt(opts, C.selected)}</select>
         <span style="font-size:11.5px;color:var(--parch-faint)">${opts.length} buildable at kingdom level ${K&&K.level!=null?K.level:"?"} — the sheet filters the menu</span></div>`;
@@ -2651,7 +2724,16 @@ function renderChamber(resetScroll=true){
     const conRecord = (outcome, detail, who)=>{
       const note = $('conNote') ? $('conNote').value.trim() : "";
       const tag = who==="dem" ? "Demolish" : `Build Structure: ${C.selected||"?"}`;
-      ledgerAdd(`${outcome}${detail?` (${detail})`:""}${note?` — ${note}`:""}`, tag);
+      const u = actUse();
+      const setl = T.settlement || "the settlement";
+      const override = ACT_OV; ACT_OV = false;
+      if(!override && (u.civic[setl]||0) >= 1){
+        toast(`${setl} has already taken its Civic activity this turn (1 per settlement). Use the table override link above to overrule — Civic-trait structures grant extra actions.`);
+        return;
+      }
+      u.civic[setl] = (u.civic[setl]||0) + 1;
+      turnSave();
+      ledgerAdd(`${outcome}${detail?` (${detail})`:""}${note?` — ${note}`:""}${override?" [table override]":""}`, tag);
       CON_STATE[who==="dem"?"dem":"con"] = {outcome, detail, structure: C.selected};
       paintOutcome(who);
     };
@@ -2697,6 +2779,7 @@ function renderChamber(resetScroll=true){
       conRecord(rollDegree(total, dc, nat), `Engineering: d20(${nat})+${engSkill?engSkill.total:0} = ${total} vs DC ${dc}`, "dem");
     };
     B.querySelectorAll('.outbtn').forEach(x=>x.onclick=()=>conRecord(x.dataset.o, null, x.dataset.dem?"dem":"con"));
+    B.querySelectorAll('.ovlink').forEach(x=>x.onclick=e=>{ e.preventDefault(); armOverride(); });
     const fxa = $('conFxApply');
     if(fxa) fxa.onclick = async ()=>{
       const expr = ($('conFxExpr').value||"").trim(), sign = Number($('conFxSign').value), target = $('conFxTarget').value;
@@ -2763,6 +2846,10 @@ function renderChamber(resetScroll=true){
       <div class="chrow"><label>Flat check DC</label><b style="font-family:var(--mono);color:var(--brass-bright)">${T.eventDC??"—"}</b>
         <button class="rollbtn" id="evRoll">🎲 d20</button><span id="evResult" style="font-family:var(--mono)"></span></div>
       <div class="chnote">On a success an event occurs — enter its level in the tracker's Event section and resolve it at the table; record what happened in the ledger.</div>
+      ${!kingdomDidAct("Collect Taxes") ? `<h3>The Kingdom Skipped Tax Collection</h3>
+      <div class="chrow"><label>Flat check DC 11</label>
+        <button class="rollbtn" id="taxSkipRoll">🎲 d20</button><span id="taxSkipResult" style="font-family:var(--mono)"></span></div>
+      <div class="chnote">Collect Taxes went unused this turn — the grateful citizenry grants a DC 11 flat check; on a success, reduce Unrest by 1.</div>` : ""}
       <h3>Step 2 · Spend Remaining RP</h3>
       <div class="chnote">Unspent Resource Points convert to Kingdom XP at ${T.xpRate??10} XP each when the turn is saved${T.xpMax?` (up to ${T.xpMax} XP)`:""} — RP now: <b style="color:var(--brass-bright)">${(T.acc&&T.acc.RP)??0}</b>. Spend deliberately, then let the rest become wisdom.</div>
       <div class="stepgrid" id="evTally"></div>
@@ -2770,6 +2857,19 @@ function renderChamber(resetScroll=true){
       <div class="chrow"><label>Awarded XP this turn</label>${numInput("evXP", T.awardedXP??0, 0)}
         <button class="rollbtn" id="evXPW">Write</button>
         <span class="chnote" style="margin:0">Kingdom total: <b style="color:var(--brass-bright)">${T.totalXP??"—"}</b> / 1000</span></div>`;
+    const tsBtn = $('taxSkipRoll');
+    if(tsBtn) tsBtn.onclick = async ()=>{
+      const r = 1+Math.floor(Math.random()*20);
+      const hit = r >= 11;
+      $('taxSkipResult').textContent = `${r} — ${hit ? "SUCCESS, Unrest −1" : "no effect"}`;
+      if(hit){
+        const nv = await applyTallyDelta("Unrest", -1);
+        ledgerAdd(`Skipped-taxes flat check: rolled ${r} vs DC 11 — success, Unrest −1${nv!==false?` (→ ${nv})`:""}`, "Event");
+      } else {
+        ledgerAdd(`Skipped-taxes flat check: rolled ${r} vs DC 11 — no effect`, "Event");
+      }
+      tsBtn.disabled = true;
+    };
     $('evRoll').onclick = ()=>{ const r = 1+Math.floor(Math.random()*20);
       const dc = T.eventDC; const hit = dc!=null && r>=dc;
       $('evResult').textContent = `${r} — ${dc!=null?(hit?"EVENT OCCURS":"quiet month"):""}`;
