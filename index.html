@@ -364,7 +364,7 @@ svg.showCoords .coordLbl{opacity:.55}
     <div class="title">The Stolen Lands<span class="tail"> <span class="amp">&</span> the Kingdom Thereof</span></div>
   </div>
   <div class="sub">A Chronicle of Exploration &amp; Rule</div>
-  <div id="draftTag">v0.20.1 · cal v5</div>
+  <div id="draftTag">v0.20.2 · cal v5</div>
   <div class="spacer"></div>
   <button class="hbtn" id="authBtn">Sign in</button>
   <button class="hbtn" id="turnBtn" style="display:none">Turn</button>
@@ -1833,14 +1833,14 @@ function openCourt(){
           <label style="font-size:11px">Potions <select onchange="armyWrite(${idx},'L${R+6}',this.value,'Potions',a=>{a.gear.potions=parseInt(this.value)})">${[0,1,2,3].map(o=>`<option ${(ar.gear&&ar.gear.potions||0)===o?"selected":""}>${o}</option>`).join("")}</select></label>
           <label style="font-size:11px"><input type="checkbox" ${ar.gear&&ar.gear.addlWeapons?"checked":""} onchange="armyWrite(${idx},'M${R+6}',this.checked?'TRUE':'FALSE','Additional weapons',a=>{a.gear.addlWeapons=this.checked})"> Addl weapons</label>
         </div>
-        <div style="margin-top:8px;font-size:12px"><span style="font-size:11px;color:var(--parch-faint)">Tactics:</span> ${[0,1,2,3,4,5].map(ti=>{
+        <div style="margin-top:8px;font-size:12px;display:flex;flex-wrap:wrap;gap:6px;align-items:center"><span style="font-size:11px;color:var(--parch-faint)">Tactics:</span>${[0,1,2,3,4,5].map(ti=>{
           const cur = (ar.tactics[ti]&&ar.tactics[ti].name)||"None";
           return `<select style="margin:2px" onchange="armyWrite(${idx},'A${R+10+ti}',this.value,'Tactic slot ${ti+1}',a=>{})">${["None"].concat((SHEET.armyOpts&&SHEET.armyOpts.tactics)||[]).map(o=>`<option ${cur===o?"selected":""}>${escapeHtml(o)}</option>`).join("")}</select>`;
         }).join("")}</div>
-        <div style="margin-top:8px"><span style="font-size:11px;color:var(--parch-faint)">Conditions:</span> ${ALLCOND.map(cn=>{
+        <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:7px 8px;align-items:center"><span style="font-size:11px;color:var(--parch-faint)">Conditions:</span>${ALLCOND.map(cn=>{
           const on = (ar.conditions||[]).includes(cn);
-          return `<span class="cchip" style="cursor:pointer;margin:2px;${on?"border-color:#8a6d3b;color:#d9b36c":"opacity:.55"}" onclick="armyCondToggle(${idx},${condRow(cn)},'${cn}',${on?"false":"true"})">${cn}</span>`;
-        }).join(" ")}</div>
+          return `<span class="cchip" style="cursor:pointer;${on?"border-color:#8a6d3b;color:#d9b36c":"opacity:.55"}" onclick="armyCondToggle(${idx},${condRow(cn)},'${cn}',${on?"false":"true"})">${cn}</span>`;
+        }).join("")}</div>
       </details>` : "";
       return `<div class="actcard" style="margin-bottom:10px"><h4 style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">${nm}${chips.map(c=>`<span class="cchip">${c}</span>`).join("")}</h4>
         <div class="meta" style="margin-top:4px">${stat.join(" · ")}${hp?` · ${hp}`:""}</div>
