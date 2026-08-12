@@ -364,7 +364,7 @@ svg.showCoords .coordLbl{opacity:.55}
     <div class="title">The Stolen Lands<span class="tail"> <span class="amp">&</span> the Kingdom Thereof</span></div>
   </div>
   <div class="sub">A Chronicle of Exploration &amp; Rule</div>
-  <div id="draftTag">v0.20 · cal v5</div>
+  <div id="draftTag">v0.20.1 · cal v5</div>
   <div class="spacer"></div>
   <button class="hbtn" id="authBtn">Sign in</button>
   <button class="hbtn" id="turnBtn" style="display:none">Turn</button>
@@ -1778,6 +1778,8 @@ function openCourt(){
   const armies = SHEET.armies || [];
   $('courtMusterSec').style.display = armies.length ? "" : "none";
   if(armies.length){
+    window.MUSTER_OPEN = window.MUSTER_OPEN || new Set();
+    window.musterToggle = (anchor, open)=>{ if(open) MUSTER_OPEN.add(anchor); else MUSTER_OPEN.delete(anchor); };
     window.armyWrite = async (idx, cell, value, label, mutate)=>{
       const ar = (SHEET.armies||[])[idx]; if(!ar || !ar.anchor) return;
       const ok = await writeCell(`Armies!${cell}`, value, label);
@@ -1820,7 +1822,7 @@ function openCourt(){
       const ALLCOND = ["Concealed","Defeated","Destroyed","Efficient","Engaged","Fortified","Lost","Mired","Distant","Outflanked","Pinned","Routed","Shaken","Weary"];
       const condRow = n => R + 2 + ALLCOND.indexOf(n);
       const gearSel = (cellCol, cur, lbl) => `<label style="font-size:11px">${lbl} <select onchange="armyWrite(${idx},'${cellCol}${R+6}',this.value,'${lbl} gear',a=>{})">${["+0","+1","+2","+3"].map(o=>`<option ${cur===parseInt(o)?"selected":""}>${o}</option>`).join("")}</select></label>`;
-      const manage = canEdit ? `<details style="margin-top:8px"><summary style="cursor:pointer;font-size:11.5px;color:var(--brass-bright);letter-spacing:.08em">⚙ MANAGE</summary>
+      const manage = canEdit ? `<details style="margin-top:8px" ${window.MUSTER_OPEN && MUSTER_OPEN.has(R) ? "open" : ""} ontoggle="musterToggle(${R}, this.open)"><summary style="cursor:pointer;font-size:11.5px;color:var(--brass-bright);letter-spacing:.08em">⚙ MANAGE</summary>
         <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-top:8px;font-size:12px">
           <label style="font-size:11px">Name <input style="width:130px" value="${escapeHtml(ar.name||"")}" onchange="armyWrite(${idx},'A${R+1}',this.value,'Army renamed',a=>{a.name=this.value})"></label>
           <label style="font-size:11px">Type <select onchange="armyWrite(${idx},'B${R+5}',this.value,'Army type',a=>{a.type=this.value})">${((SHEET.armyOpts&&SHEET.armyOpts.types)||["Infantry"]).map(o=>`<option ${ar.type===o?"selected":""}>${escapeHtml(o)}</option>`).join("")}</select></label>
