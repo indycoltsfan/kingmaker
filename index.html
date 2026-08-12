@@ -370,7 +370,7 @@ svg.showCoords .coordLbl{opacity:.55}
     <div class="title">The Stolen Lands<span class="tail"> <span class="amp">&</span> the Kingdom Thereof</span></div>
   </div>
   <div class="sub">A Chronicle of Exploration &amp; Rule</div>
-  <div id="draftTag">v0.22 · cal v5</div>
+  <div id="draftTag">v0.22.1 · cal v5</div>
   <div class="spacer"></div>
   <button class="hbtn" id="authBtn">Sign in</button>
   <button class="hbtn" id="turnBtn" style="display:none">Turn</button>
@@ -1951,8 +1951,9 @@ function renderThrone(){
         <summary style="cursor:pointer;font-family:var(--serif);font-size:15px">Level ${lv.level} ${unlocked?"":"🔒"}${pend?` <span class="cchip" style="border-color:#8a6d3b;color:#d9b36c">${pend} choice${pend>1?"s":""} await${pend>1?"":"s"}</span>`:""}</summary>
         ${feats}</details>`;
     }).join("");
-    $('throneAdv').innerHTML = cards;
-    $('throneAdvHead').innerHTML = `The Coronation Hall — Kingdom Advancement <span class="stepHead" onclick="openRules('Leveling Up Your Kingdom', SHEET.advIntro?[SHEET.advIntro]:[], [])" style="font-size:12px"><span class="qmark">?</span>Leveling Up</span>${pendingCount?` <span class="cchip" style="border-color:#8a6d3b;color:#d9b36c">the kingdom has grown — ${pendingCount} choice${pendingCount>1?"s":""} await${pendingCount>1?"":"s"}</span>`:""}`;
+    const grownBanner = pendingCount ? `<div style="margin:2px 0 10px"><span class="cchip" style="border-color:#8a6d3b;color:#d9b36c;font-size:12px;padding:5px 12px">The kingdom has grown — ${pendingCount} choice${pendingCount>1?"s":""} await${pendingCount>1?"":"s"}</span></div>` : "";
+    $('throneAdv').innerHTML = grownBanner + cards;
+    $('throneAdvHead').innerHTML = `The Coronation Hall — Kingdom Advancement <span class="stepHead" onclick="openRules('Leveling Up Your Kingdom', SHEET.advIntro?[SHEET.advIntro]:[], [])" style="font-size:12px"><span class="qmark">?</span>Leveling Up</span>`;
   }
   computeThroneGlow();
 }
