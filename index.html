@@ -371,7 +371,7 @@ svg.showCoords .coordLbl{opacity:.55}
     <div class="title">The Stolen Lands<span class="tail"> <span class="amp">&</span> the Kingdom Thereof</span></div>
   </div>
   <div class="sub">A Chronicle of Exploration &amp; Rule</div>
-  <div id="draftTag">v0.23 · cal v5</div>
+  <div id="draftTag">v0.24 · cal v5</div>
   <div class="spacer"></div>
   <button class="hbtn" id="authBtn">Sign in</button>
   <button class="hbtn" id="turnBtn" style="display:none">Turn</button>
@@ -397,7 +397,29 @@ svg.showCoords .coordLbl{opacity:.55}
     <g id="world">
       <image id="mapImg" x="0" y="0" clip-path="url(#mapClip)"/>
       <g clip-path="url(#frameClip)">
-        <g id="permFog"></g>
+        <defs>
+  <symbol id="ws-farmland" viewBox="0 0 80 80">
+    <polygon points="8,38 40,12 72,38" fill="rgba(13,11,8,.55)" stroke="#d8b366" stroke-width="4" stroke-linejoin="round"/>
+    <rect x="14" y="36" width="52" height="32" fill="rgba(13,11,8,.55)" stroke="#d8b366" stroke-width="4"/>
+    <rect x="33" y="48" width="14" height="20" fill="#d8b366" opacity=".85"/>
+  </symbol>
+  <symbol id="ws-camp" viewBox="0 0 80 80">
+    <rect x="8" y="54" width="64" height="14" rx="7" fill="rgba(13,11,8,.55)" stroke="#d8b366" stroke-width="4"/>
+    <circle cx="40" cy="34" r="17" fill="rgba(13,11,8,.4)" stroke="#d8b366" stroke-width="4.5" stroke-dasharray="7 4"/>
+    <circle cx="40" cy="34" r="4.5" fill="#d8b366"/>
+  </symbol>
+  <symbol id="ws-mine" viewBox="0 0 80 80">
+    <path d="M14,68 L14,44 A26,26 0 0 1 66,44 L66,68 Z" fill="rgba(13,11,8,.65)" stroke="#d8b366" stroke-width="4" stroke-linejoin="round"/>
+    <rect x="9" y="37" width="62" height="7" fill="#d8b366" opacity=".85"/>
+    <path d="M30,68 L30,52 A10,10 0 0 1 50,52 L50,68" fill="none" stroke="#d8b366" stroke-width="3.5"/>
+  </symbol>
+  <symbol id="ws-quarry" viewBox="0 0 80 80">
+    <rect x="10" y="48" width="28" height="18" fill="rgba(13,11,8,.55)" stroke="#d8b366" stroke-width="4"/>
+    <rect x="42" y="48" width="28" height="18" fill="rgba(13,11,8,.55)" stroke="#d8b366" stroke-width="4"/>
+    <rect x="26" y="28" width="28" height="18" fill="rgba(13,11,8,.55)" stroke="#d8b366" stroke-width="4"/>
+  </symbol>
+</defs>
+<g id="permFog"></g>
         <g id="fills"></g>
         <g id="regions"></g>
       </g>
@@ -470,6 +492,14 @@ svg.showCoords .coordLbl{opacity:.55}
         <button class="mtag" data-m="settlement">★ Settlement</button>
         <button class="mtag" data-m="poi">◆ Point of interest</button>
         <button class="mtag" data-m="danger">▲ Danger</button>
+        <button class="mtag" data-m="farmland">❋ Farmland</button>
+        <button class="mtag" data-m="camp">♣ Lumber Camp</button>
+        <button class="mtag" data-m="mine">⚒ Mine</button>
+        <button class="mtag" data-m="quarry">▦ Quarry</button>
+      </div>
+      <div id="richRow" style="display:none;margin-top:6px">
+        <label style="font-size:13px;color:var(--parch-dim);cursor:pointer;display:inline-flex;align-items:center;gap:7px">
+          <input type="checkbox" id="richChk"> ✦ Rich node — this site yields ×2</label>
       </div>
     </div>
     <div>
@@ -1468,6 +1498,9 @@ function renderStatic(){
     h.coordEl.textContent = h.id;
     h.nameEl = el('text',{x:lx, y:Math.min(Math.max(h.cy+12, F2.t+74), F2.b-40), "text-anchor":"middle","font-size":32, class:"nameLbl"}, layers.names);
     h.markEl = el('text',{x:lx, y:Math.min(h.cy+r*0.62, F2.b-14), "text-anchor":"middle","font-size":44, class:"marker", fill:"#d8b366"}, layers.marks);
+    const cyIcon = Math.max(h.cy - r*0.28, F2.t + 58);
+    h.siteEl = el('use',{class:"wsicon", width:64, height:64, x:lx-32, y:cyIcon-32, style:"display:none"}, layers.marks);
+    h.richEl = el('text',{x:lx+34, y:cyIcon-20, "text-anchor":"middle","font-size":28, class:"marker", fill:"#e8c87a"}, layers.marks);
     const hit = el('polygon',{points:ptsStr(verts(h.cx,h.cy,r)), class:"hexHit"}, layers.hits);
     hit.addEventListener('pointerenter', ev=>showTip(h,ev));
     hit.addEventListener('pointermove', ev=>moveTip(ev));
@@ -1486,6 +1519,18 @@ function refreshHex(h){
   h.nameEl.textContent = st.status==="unexplored" ? "" : (st.name||"");
   const glyph = {settlement:"★", poi:"◆", danger:"▲"};
   h.markEl.textContent = st.status==="unexplored" ? "" : (st.marks||[]).map(m=>glyph[m]||"").join(" ");
+  {
+    const M = st.marks||[];
+    const site = st.status==="unexplored" ? null : ["camp","mine","quarry","farmland"].find(m=>M.includes(m));
+    if(site && h.siteEl){
+      h.siteEl.setAttribute('href', '#ws-'+site);
+      h.siteEl.style.display = "";
+      h.richEl.textContent = M.includes('rich') ? "✦" : "";
+    } else if(h.siteEl){
+      h.siteEl.style.display = "none";
+      h.richEl.textContent = "";
+    }
+  }
 }
 function refreshAll(){ HEX.filter(h=>h.full).forEach(refreshHex); renderRegions(); }
 
@@ -1656,6 +1701,13 @@ function openPanel(h){
     b.title = locked ? "Only the GM reveals or re-fogs territory" : "";
   });
   document.querySelectorAll('#markRow .mtag').forEach(b=>b.classList.toggle('on', (st.marks||[]).includes(b.dataset.m)));
+  {
+    const M = st.marks||[];
+    const hasSite = ["farmland","camp","mine","quarry"].some(m=>M.includes(m));
+    $('richRow').style.display = hasSite ? "" : "none";
+    $('richChk').checked = M.includes('rich');
+    $('richChk').disabled = !canEditHex;
+  }
   renderSettlementSection(st);
   const regs = DATA.regions.filter(r=>r.hexes.includes(h.id));
   $('pRegionLine').textContent = regs.length ? "Province of " + regs.map(r=>r.name).join(", ") : "";
@@ -1692,8 +1744,19 @@ document.querySelectorAll('#markRow .mtag').forEach(b=>b.onclick=()=>{
   const st=hex(selected.id); st.marks=st.marks||[];
   const i=st.marks.indexOf(b.dataset.m);
   if(i>=0) st.marks.splice(i,1); else st.marks.push(b.dataset.m);
+  if(!["farmland","camp","mine","quarry"].some(m=>st.marks.includes(m))){
+    const ri=st.marks.indexOf('rich'); if(ri>=0) st.marks.splice(ri,1);
+  }
   save(); refreshHex(selected); pushHex(selected.id); openPanel(selected);
 });
+$('richChk').onchange=()=>{
+  if(!selected||!editMode) return;
+  const st=hex(selected.id); st.marks=st.marks||[];
+  const i=st.marks.indexOf('rich');
+  if($('richChk').checked && i<0) st.marks.push('rich');
+  if(!$('richChk').checked && i>=0) st.marks.splice(i,1);
+  save(); refreshHex(selected); pushHex(selected.id); openPanel(selected);
+};
 $('hexName').addEventListener('change', ()=>{ if(selected) renderSettlementSection(hexGet(selected.id)); });
 $('regionAssign').onchange=e=>{
   if(!selected||!e.target.value) return;
@@ -2356,6 +2419,45 @@ function renderChamber(resetScroll=true){
         <button class="rollbtn" id="upRPW">Record RP</button></div>
       <div class="chnote" id="upRollDetail" style="font-family:var(--mono);display:none"></div>
       <div class="chnote">Roll here or clatter real dice and type the total — the kingdom accepts both currencies.</div>
+      ${(()=>{
+        const SITES = [
+          {sheet:"Lumber Camps", mark:"camp",   cm:"Lumber", label:"Lumber Camps"},
+          {sheet:"Mines",        mark:"mine",   cm:"Ore",    label:"Mines"},
+          {sheet:"Quarries",     mark:"quarry", cm:"Stone",  label:"Quarries"}
+        ];
+        const sheetCount = {}; (((SHEET.court&&SHEET.court.workSites)||[])).forEach(w=>sheetCount[w.name]=Math.round(w.count||0));
+        // map survey: claimed hexes carrying work-site marks; rich doubles
+        const mapSites = {};
+        for(const [id,st] of Object.entries(DATA.hexes||{})){
+          if(st.status!=="claimed") continue;
+          const M = st.marks||[];
+          for(const S of SITES) if(M.includes(S.mark))
+            (mapSites[S.mark]=mapSites[S.mark]||[]).push({id, rich:M.includes('rich')});
+        }
+        const rows = SITES.map(S=>{
+          const hexes = mapSites[S.mark]||[];
+          const sc = sheetCount[S.sheet]||0;
+          const mapYield = hexes.reduce((t,h)=>t+(h.rich?2:1),0);
+          return {S, hexes, sc, mapYield, prefill: hexes.length ? mapYield : sc};
+        }).filter(r=>r.hexes.length || r.sc>0);
+        if(!rows.length) return "";
+        const gathered = !!actUse().gathered;
+        const caps = {}; (((SHEET.court&&SHEET.court.commodities)||[])).forEach(c=>caps[c.name]=c.max);
+        return `<h4 style="margin:14px 0 4px;color:var(--brass-bright)">Gather from Work Sites</h4>
+        <div class="chnote" style="margin-top:0">Each site yields 1 of its commodity per turn, passively — ✦ rich nodes yield 2. Mark sites on the map (hex panel → Marks) and the survey below computes itself. Excess beyond storage is lost.</div>
+        ${rows.map(r=>{
+          const where = r.hexes.length
+            ? r.hexes.map(h=>`${h.id}${h.rich?" ✦":""}`).join(", ")
+            : "not yet marked on the map";
+          const mismatch = r.hexes.length && r.hexes.length !== r.sc
+            ? `<div class="chnote" style="color:#d9b36c;margin:2px 0 6px 150px">map shows ${r.hexes.length} ${r.S.label.toLowerCase()}, the sheet says ${r.sc} — worth reconciling</div>` : "";
+          return `<div class="chrow"><label style="min-width:150px">${r.S.label} · ${escapeHtml(where)}</label>
+            <input type="number" class="wsyield" data-cm="${r.S.cm}" value="${r.prefill}" min="0" style="width:64px" ${gathered?"disabled":""}>
+            <span style="font-size:11.5px;color:var(--parch-faint)">→ ${r.S.cm} (stores ${(T.acc&&T.acc[r.S.cm])??0}/${caps[r.S.cm]??"?"})</span></div>${mismatch}`;
+        }).join("")}
+        <div class="chrow"><button class="rollbtn" id="wsGather" ${gathered?"disabled":""}>${gathered?"Gathered this turn":"Apply to stores"}</button>
+          ${gathered?`<a href="#" class="ovlink" style="font-size:11px;color:var(--parch-faint)">table override</a>`:""}</div>`;
+      })()}
       <h3>${stepHeading("Step 4 · Pay Consumption")}</h3>
       <div class="chrow"><label>Consumption due</label><b style="font-family:var(--mono);color:var(--brass-bright)">${T.consumptionDue??"—"} Food</b>
         <span style="font-size:11.5px;color:var(--parch-faint)">${(()=>{const c=(SHEET.court&&SHEET.court.consumption)||{};const f=((SHEET.court&&SHEET.court.workSites)||[]).find(w=>/farm/i.test(w.name||""));const parts=[];if(c.settlement!=null)parts.push(`settlements ${c.settlement}`);if(c.army)parts.push(`armies ${c.army}`);if(f&&f.count)parts.push(`− farmlands ${f.count}`);return parts.length?`(${parts.join(" · ")})`:"";})()}</span>
@@ -2466,6 +2568,30 @@ function renderChamber(resetScroll=true){
         $('upConNote').textContent = "Nothing owed this turn.";
       }
     }
+    B.querySelectorAll('.ovlink').forEach(x=>x.onclick=e=>{ e.preventDefault(); armOverride(); });
+    const wsBtn = $('wsGather');
+    if(wsBtn) wsBtn.onclick = async ()=>{
+      const u = actUse();
+      if(u.gathered && !ACT_OV){ toast("Work sites already gathered this turn — table override to overrule."); return; }
+      ACT_OV = false;
+      const caps = {}; (((SHEET.court&&SHEET.court.commodities)||[])).forEach(c=>caps[c.name]=c.max);
+      const lines = [];
+      for(const inp of B.querySelectorAll('.wsyield')){
+        const cm = inp.dataset.cm, want = Math.max(0, Number(inp.value)||0);
+        if(!want) continue;
+        const cur = Number((T.acc&&T.acc[cm]))||0;
+        const room = caps[cm]!=null ? Math.max(0, caps[cm]-cur) : want;
+        const give = Math.min(want, room);
+        if(give>0){
+          const nv = await applyTallyDelta(cm, give);
+          if(nv!==false) lines.push(`+${give} ${cm}${give<want?` (${want-give} lost to storage cap)`:""}`);
+        } else lines.push(`+0 ${cm} (storage full — ${want} lost)`);
+      }
+      if(!lines.length){ toast("Nothing to gather."); return; }
+      u.gathered = true; turnSave();
+      ledgerAdd(`Work sites gathered: ${lines.join(", ")}`, "Upkeep");
+      renderChamber(false);
+    };
     wireStepHeads();
   }
   else if(TURN.phase==="activity"){
