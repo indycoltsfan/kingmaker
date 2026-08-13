@@ -373,7 +373,7 @@ svg.showCoords .coordLbl{opacity:.55}
     <div class="title">The Stolen Lands<span class="tail"> <span class="amp">&</span> the Kingdom Thereof</span></div>
   </div>
   <div class="sub">A Chronicle of Exploration &amp; Rule</div>
-  <div id="draftTag">v0.25 · cal v5</div>
+  <div id="draftTag">v0.26 · cal v5</div>
   <div class="spacer"></div>
   <button class="hbtn" id="authBtn">Sign in</button>
   <button class="hbtn" id="turnBtn" style="display:none">Turn</button>
@@ -1369,7 +1369,9 @@ async function refreshSheetLive(force){
       adoptLedger(parsed, new Date());
       try{ if(!SHEET_SANDBOX) localStorage.setItem('sl-ledger', JSON.stringify({at: Date.now(), data: parsed})); }catch(e){}
     }
-  }catch(e){ /* snapshot or cache stands */ }
+  }catch(e){
+    if(force) toast("The live ledger didn't answer — the cached copy stands. Try again in a moment.");
+  }
   finally{ sheetFetching = false; }
 }
 /* ============ calibration (native px, 8000x2826) ============ */
@@ -3370,7 +3372,7 @@ $('calReset').onclick=()=>{ CAL={...CAL_DEFAULT, frame:{...CAL_DEFAULT.frame}}; 
 function rebuild(){ buildGrid(); renderStatic(); if(selected && byId[selected.id]) selectHex(byId[selected.id]); }
 initSwatches();
 loadLedgerCache();
-refreshSheetLive(false);
+refreshSheetLive(true);   // cache paints instantly; boot still asks the live sheet — a page refresh must always see fresh data
 cloudBoot();
 buildGrid();
 renderStatic();
